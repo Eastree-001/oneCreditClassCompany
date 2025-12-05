@@ -4,8 +4,8 @@
     <el-aside :width="isCollapse ? '64px' : '240px'" class="sidebar">
       <div class="logo">
         <transition name="fade">
-          <span v-if="!isCollapse" class="logo-text">EduNexus</span>
-          <span v-else class="logo-icon">E</span>
+          <span v-if="!isCollapse" class="logo-text">一学分课堂</span>
+          <span v-else class="logo-icon">一</span>
         </transition>
       </div>
       <el-menu
