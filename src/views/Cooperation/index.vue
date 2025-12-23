@@ -62,9 +62,18 @@
         </el-table-column>
         <el-table-column prop="startTime" label="开始时间" width="120" />
         <el-table-column prop="endTime" label="结束时间" width="120" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link :icon="View" @click="handleView(row)">查看</el-button>
+            <el-button
+              v-if="row.status === 'ongoing'"
+              type="warning"
+              link
+              :icon="TrendCharts"
+              @click="handleUpdateProgress(row)"
+            >
+              更新进度
+            </el-button>
             <el-button
               v-if="row.status === 'ongoing'"
               type="primary"
@@ -129,7 +138,6 @@
           <el-col :span="12">
             <el-form-item label="项目类型" prop="type">
               <el-select v-model="formData.type" placeholder="请选择项目类型" style="width: 100%">
-                <el-option label="人才培养" value="talent" />
                 <el-option label="课程共建" value="course" />
                 <el-option label="实习基地" value="internship" />
                 <el-option label="科研合作" value="research" />
@@ -233,11 +241,59 @@
         <el-button type="primary" @click="viewDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 更新进度对话框 -->
+    <el-dialog
+      v-model="progressDialogVisible"
+      title="更新项目进度"
+      width="500px"
+      @close="handleProgressDialogClose"
+    >
+      <el-form
+        ref="progressFormRef"
+        :model="progressFormData"
+        :rules="progressFormRules"
+        label-width="120px"
+      >
+        <el-form-item label="当前项目">
+          <span>{{ currentProject?.name }}</span>
+        </el-form-item>
+        
+        <el-form-item label="当前进度">
+          <el-progress :percentage="currentProject?.progress || 0" :status="getProgressStatus(currentProject?.progress || 0)" />
+        </el-form-item>
+        
+        <el-form-item label="新进度" prop="progress">
+          <el-slider
+            v-model="progressFormData.progress"
+            :min="0"
+            :max="100"
+            :step="5"
+            show-input
+            :format-tooltip="formatProgress"
+          />
+        </el-form-item>
+        
+        <el-form-item label="进度说明">
+          <el-input
+            v-model="progressFormData.note"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入本次进度更新的说明（可选）"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="progressDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleProgressSubmit" :loading="progressSubmitLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
@@ -245,15 +301,22 @@ import {
   Refresh,
   Edit,
   Delete,
-  View
+  View,
+  TrendCharts
 } from '@element-plus/icons-vue'
+import { cooperationApi } from '@/api'
+import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
 
+const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const submitLoading = ref(false)
 const dialogVisible = ref(false)
 const viewDialogVisible = ref(false)
+const progressDialogVisible = ref(false)
 const isEdit = ref(false)
+const progressSubmitLoading = ref(false)
+const currentProject = ref(null)
 
 const searchForm = reactive({
   keyword: '',
@@ -296,6 +359,17 @@ const viewData = reactive({
   phone: ''
 })
 
+const progressFormData = reactive({
+  progress: 0,
+  note: ''
+})
+
+const progressFormRules = {
+  progress: [{ required: true, message: '请设置项目进度', trigger: 'blur' }]
+}
+
+const progressFormRef = ref(null)
+
 const dialogTitle = computed(() => isEdit.value ? '编辑项目' : '新增项目')
 
 const formRules = {
@@ -308,71 +382,130 @@ const formRules = {
   endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }]
 }
 
-const projectList = ref([
-  {
-    id: 1,
-    name: '前端工程师人才培养计划',
-    school: 'tsinghua',
-    type: 'talent',
-    status: 'ongoing',
-    students: 25,
-    progress: 65,
-    description: '与清华大学计算机系合作，培养前端工程师人才',
-    startTime: '2024-01-01',
-    endTime: '2024-06-30',
-    goals: '培养25名前端工程师，掌握React、Vue.js等技能',
-    contact: '张经理',
-    phone: '13800138000'
-  },
-  {
-    id: 2,
-    name: 'AI算法课程共建',
-    school: 'pku',
-    type: 'course',
-    status: 'ongoing',
-    students: 30,
-    progress: 45,
-    description: '与北京大学合作共建AI算法课程',
-    startTime: '2024-02-01',
-    endTime: '2024-07-31',
-    goals: '共建AI算法课程，培养30名算法工程师',
-    contact: '李经理',
-    phone: '13900139000'
-  },
-  {
-    id: 3,
-    name: '数据安全实习基地',
-    school: 'fudan',
-    type: 'internship',
-    status: 'completed',
-    students: 15,
-    progress: 100,
-    description: '与复旦大学合作建立数据安全实习基地',
-    startTime: '2023-09-01',
-    endTime: '2023-12-31',
-    goals: '建立实习基地，提供15个实习岗位',
-    contact: '王经理',
-    phone: '13700137000'
-  },
-  {
-    id: 4,
-    name: 'AIGC内容设计科研合作',
-    school: 'sjtu',
-    type: 'research',
-    status: 'paused',
-    students: 10,
-    progress: 30,
-    description: '与上海交通大学合作进行AIGC内容设计研究',
-    startTime: '2024-03-01',
-    endTime: '2024-12-31',
-    goals: '开展AIGC内容设计相关研究',
-    contact: '陈经理',
-    phone: '13600136000'
+// 合作项目列表数据
+const projectList = ref([])
+
+// 获取合作项目列表
+const fetchProjects = async () => {
+  console.log('=== 开始获取合作项目列表 ===')
+  
+  try {
+    // 1. 验证token
+    const token = getValidToken()
+    console.log('Token验证结果:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    // 2. 获取用户信息
+    const userInfo = getUserInfoFromToken(token)
+    console.log('用户信息:', userInfo)
+    
+    if (!userInfo) {
+      ElMessage.error('Token无效，请重新登录')
+      router.push('/login')
+      return
+    }
+    
+    // 3. 发起API请求获取合作项目列表
+    console.log('🔄 开始获取合作项目数据...')
+    loading.value = true
+    
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.size,
+      keyword: searchForm.keyword || undefined,
+      school: searchForm.school || undefined,
+      status: searchForm.status || undefined
+    }
+    
+    console.log('📤 请求参数:', params)
+    console.log('🌐 请求地址: /api/enterprise/cooperation-projects')
+    
+    const response = await cooperationApi.getEnterpriseList(params)
+    
+    console.log('📥 合作项目API响应:', response)
+    
+    // 4. 处理真实响应数据
+    if (response && (response.data || response.code === 200)) {
+      let data = response.data || response
+      
+      // 尝试多种可能的数据结构
+      let projects = []
+      let total = 0
+      
+      if (Array.isArray(data)) {
+        // 直接是数组格式
+        projects = data
+        total = data.length
+      } else if (typeof data === 'object') {
+        // 对象格式，包含list、records、projects等字段
+        projects = data.list || data.records || data.data || data.projects || []
+        total = data.total || data.count || projects.length
+      }
+      
+      projectList.value = projects
+      pagination.total = total
+      
+      console.log('✅ 合作项目数据处理完成:', {
+        listLength: projectList.value.length,
+        total: pagination.total,
+        dataSource: 'real_api'
+      })
+      
+      // 如果没有数据，提示用户
+      if (projects.length === 0) {
+        ElMessage.info('暂无合作项目数据，请先创建')
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('获取数据成功，但数据格式需要调整，请检查后端API')
+      projectList.value = []
+      pagination.total = 0
+    }
+    
+  } catch (error) {
+    console.error('❌ 获取合作项目列表失败:', error)
+    
+    // 详细的错误处理
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限访问合作项目数据')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('合作项目API接口不存在 (404)，请联系管理员')
+      projectList.value = []
+      pagination.total = 0
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+      projectList.value = []
+      pagination.total = 0
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+      projectList.value = []
+      pagination.total = 0
+    } else {
+      ElMessage.error(`获取合作项目失败: ${error.message || '未知错误'}`)
+      projectList.value = []
+      pagination.total = 0
+    }
+  } finally {
+    loading.value = false
   }
-])
+}
 
 onMounted(() => {
-  pagination.total = projectList.value.length
+  console.log('合作项目管理页面挂载，开始获取合作项目数据')
+  fetchProjects()
 })
 
 const getSchoolName = (value) => {
@@ -388,7 +521,6 @@ const getSchoolName = (value) => {
 
 const getTypeTag = (type) => {
   const map = {
-    talent: 'primary',
     course: 'success',
     internship: 'warning',
     research: 'info'
@@ -398,7 +530,6 @@ const getTypeTag = (type) => {
 
 const getTypeName = (type) => {
   const map = {
-    talent: '人才培养',
     course: '课程共建',
     internship: '实习基地',
     research: '科研合作'
@@ -455,61 +586,178 @@ const handleEdit = (row) => {
 }
 
 const handleView = (row) => {
-  Object.assign(viewData, {
-    ...row,
-    school: getSchoolName(row.school)
-  })
-  viewDialogVisible.value = true
+  // 跳转到详情页面
+  router.push(`/cooperation/${row.id}`)
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该项目吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const index = projectList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      projectList.value.splice(index, 1)
-      pagination.total--
-      ElMessage.success('删除成功')
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该项目吗？删除后不可恢复。', '删除确认', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    console.log('=== 开始删除合作项目 ===')
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
     }
-  }).catch(() => {})
+    
+    console.log('🗑️ 删除合作项目，调用真实API')
+    console.log('📤 删除合作项目ID:', row.id)
+    console.log('🌐 请求地址: /api/enterprise/cooperation-projects/{id}')
+    
+    // 调用真实删除API
+    const response = await cooperationApi.deleteEnterprise(row.id)
+    
+    console.log('📥 删除合作项目API响应:', response)
+    
+    // 处理删除响应
+    if (response && (response.data || response.code === 200 || response.success)) {
+      console.log('✅ 合作项目删除成功')
+      ElMessage.success('合作项目删除成功')
+      
+      // 从本地列表中移除
+      const index = projectList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        projectList.value.splice(index, 1)
+        pagination.total--
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('删除成功，但响应格式需要调整，请检查后端API')
+      // 即使响应格式异常，也认为删除成功
+      const index = projectList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        projectList.value.splice(index, 1)
+        pagination.total--
+      }
+    }
+    
+  } catch (error) {
+    if (error === 'cancel') {
+      console.log('🚫 用户取消删除操作')
+      return
+    }
+    
+    console.error('❌ 删除合作项目失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限删除合作项目')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('删除API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`删除合作项目失败: ${error.message || '未知错误'}`)
+    }
+  }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
       submitLoading.value = true
-      setTimeout(() => {
+      
+      try {
+        // 构建API请求数据，按照指定的格式
+        const requestData = {
+          name: formData.name,
+          school: formData.school,
+          type: formData.type,
+          students: formData.students,
+          description: formData.description,
+          goals: formData.goals || '',
+          start_time: formData.startTime ? new Date(formData.startTime).toISOString().split('T')[0] : '',
+          end_time: formData.endTime ? new Date(formData.endTime).toISOString().split('T')[0] : '',
+          contact: formData.contact || '',
+          phone: formData.phone || ''
+        }
+        
+        console.log('📤 准备发送合作项目创建请求:', {
+          endpoint: '/api/enterprise/cooperation-projects',
+          data: requestData
+        })
+        
+        let response
         if (isEdit.value) {
-          const index = projectList.value.findIndex(item => item.id === formData.id)
-          if (index > -1) {
-            Object.assign(projectList.value[index], {
-              ...formData,
-              status: projectList.value[index].status,
-              progress: projectList.value[index].progress
-            })
-            ElMessage.success('更新成功')
+          // 编辑模式：更新现有项目
+          response = await cooperationApi.updateEnterprise(formData.id, requestData)
+          console.log('📥 编辑合作项目响应:', response)
+          
+          if (response && (response.code === 200 || response.data)) {
+            // 更新本地列表数据
+            const index = projectList.value.findIndex(item => item.id === formData.id)
+            if (index > -1) {
+              Object.assign(projectList.value[index], {
+                ...formData,
+                startTime: requestData.start_time,
+                endTime: requestData.end_time
+              })
+            }
+            ElMessage.success('项目更新成功')
+          } else {
+            throw new Error(response?.message || '更新项目失败')
           }
         } else {
-          projectList.value.unshift({
-            id: Date.now(),
-            ...formData,
-            status: 'ongoing',
-            progress: 0,
-            startTime: formData.startTime ? new Date(formData.startTime).toLocaleDateString('zh-CN') : '',
-            endTime: formData.endTime ? new Date(formData.endTime).toLocaleDateString('zh-CN') : ''
-          })
-          pagination.total++
-          ElMessage.success('创建成功')
+          // 创建模式：调用API创建新项目
+          response = await cooperationApi.createEnterprise(requestData)
+          console.log('📥 创建合作项目响应:', response)
+          
+          if (response && (response.code === 200 || response.data)) {
+            // 添加到本地列表
+            const newProject = {
+              id: response.data?.id || Date.now(),
+              ...formData,
+              status: 'ongoing',
+              progress: 0,
+              startTime: requestData.start_time,
+              endTime: requestData.end_time
+            }
+            projectList.value.unshift(newProject)
+            pagination.total++
+            ElMessage.success('项目创建成功')
+          } else {
+            throw new Error(response?.message || '创建项目失败')
+          }
         }
-        submitLoading.value = false
+        
         dialogVisible.value = false
         resetForm()
-      }, 500)
+        
+      } catch (error) {
+        console.error('❌ 提交合作项目失败:', error)
+        
+        // 详细错误处理
+        if (error.response?.status === 401) {
+          ElMessage.error('登录已过期，请重新登录')
+          router.push('/login')
+        } else if (error.response?.status === 400) {
+          const errorMsg = error.response?.data?.message || '请求数据格式错误'
+          ElMessage.error(`创建失败: ${errorMsg}`)
+        } else if (error.response?.status === 403) {
+          ElMessage.error('没有权限创建合作项目')
+        } else if (error.response?.status === 500) {
+          ElMessage.error('服务器错误，请稍后重试')
+        } else {
+          ElMessage.error(`提交失败: ${error.message || '未知错误'}`)
+        }
+      } finally {
+        submitLoading.value = false
+      }
     }
   })
 }
@@ -535,22 +783,143 @@ const resetForm = () => {
   formRef.value?.clearValidate()
 }
 
-const handleSearch = () => {
-  ElMessage.info('搜索功能开发中')
+const handleSearch = async () => {
+  console.log('执行搜索操作:', searchForm)
+  pagination.page = 1 // 重置到第一页
+  await fetchProjects()
 }
 
 const handleReset = () => {
   searchForm.keyword = ''
   searchForm.school = ''
   searchForm.status = ''
+  // 重置后重新加载数据
+  handleSearch()
 }
 
-const handleSizeChange = (size) => {
+const handleSizeChange = async (size) => {
   pagination.size = size
+  pagination.page = 1
+  await fetchProjects()
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = async (page) => {
   pagination.page = page
+  await fetchProjects()
+}
+
+// 处理更新进度
+const handleUpdateProgress = (row) => {
+  currentProject.value = row
+  Object.assign(progressFormData, {
+    progress: row.progress || 0,
+    note: ''
+  })
+  progressDialogVisible.value = true
+}
+
+// 提交进度更新
+const handleProgressSubmit = async () => {
+  if (!progressFormRef.value || !currentProject.value) return
+  
+  try {
+    const valid = await progressFormRef.value.validate()
+    if (!valid) return
+    
+    console.log('=== 开始更新合作项目进度 ===')
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    progressSubmitLoading.value = true
+    
+    const requestData = {
+      progress: progressFormData.progress,
+      note: progressFormData.note || ''
+    }
+    
+    console.log('📤 更新进度请求数据:', requestData)
+    console.log('🌐 请求地址: /api/enterprise/cooperation-projects/{id}/progress')
+    
+    const response = await cooperationApi.updateProgress(currentProject.value.id, requestData)
+    
+    console.log('📥 更新合作项目进度API响应:', response)
+    
+    // 处理更新响应
+    if (response && (response.data || response.code === 200)) {
+      console.log('✅ 合作项目进度更新成功')
+      ElMessage.success('项目进度更新成功')
+      
+      // 更新本地列表数据
+      const index = projectList.value.findIndex(item => item.id === currentProject.value.id)
+      if (index > -1) {
+        projectList.value[index].progress = progressFormData.progress
+        // 如果进度达到100%，自动设置为已完成
+        if (progressFormData.progress >= 100) {
+          projectList.value[index].status = 'completed'
+        }
+      }
+      
+      // 关闭对话框
+      progressDialogVisible.value = false
+      resetProgressForm()
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('进度更新成功，但响应格式需要调整，请检查后端API')
+      progressDialogVisible.value = false
+      // 即使响应格式异常，也认为更新成功
+      const index = projectList.value.findIndex(item => item.id === currentProject.value.id)
+      if (index > -1) {
+        projectList.value[index].progress = progressFormData.progress
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ 更新合作项目进度失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限更新项目进度')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('合作项目进度更新API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`更新项目进度失败: ${error.message || '未知错误'}`)
+    }
+  } finally {
+    progressSubmitLoading.value = false
+  }
+}
+
+// 关闭进度更新对话框
+const handleProgressDialogClose = () => {
+  resetProgressForm()
+}
+
+// 重置进度表单
+const resetProgressForm = () => {
+  Object.assign(progressFormData, {
+    progress: 0,
+    note: ''
+  })
+  currentProject.value = null
+  progressFormRef.value?.clearValidate()
+}
+
+// 格式化进度提示
+const formatProgress = (value) => {
+  return `${value}%`
 }
 </script>
 

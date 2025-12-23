@@ -3,8 +3,31 @@
     <el-card shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>人才需求发布</span>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">发布需求</el-button>
+          <div class="header-left">
+            <span>人才需求发布</span>
+            <el-tag 
+              v-if="demandList.some(item => item._isDemo)" 
+              type="warning" 
+              size="small" 
+              style="margin-left: 10px"
+            >
+              演示数据
+            </el-tag>
+            <el-tag 
+              v-else-if="demandList.length > 0" 
+              type="success" 
+              size="small" 
+              style="margin-left: 10px"
+            >
+              真实数据
+            </el-tag>
+          </div>
+          <div class="header-right">
+            <el-button @click="handleRefresh" :loading="loading" style="margin-right: 10px">
+              刷新数据
+            </el-button>
+            <el-button type="primary" :icon="Plus" @click="handleAdd">发布需求</el-button>
+          </div>
         </div>
       </template>
 
@@ -55,9 +78,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="发布时间" width="180" />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="View" @click="handleView(row)">查看</el-button>
+            <el-button type="primary" link :icon="View" @click="viewDetail(row)">查看详情</el-button>
             <el-button
               v-if="row.status === 'published'"
               type="primary"
@@ -254,6 +277,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
@@ -264,7 +288,10 @@ import {
   View,
   Close
 } from '@element-plus/icons-vue'
+import { talentDemandApi } from '@/api'
+import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
 
+const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -333,59 +360,135 @@ const formRules = {
   description: [{ required: true, message: '请输入岗位描述', trigger: 'blur' }]
 }
 
-const demandList = ref([
-  {
-    id: 1,
-    title: '招聘前端工程师',
-    position: '前端工程师',
-    count: 5,
-    location: '北京',
-    description: '负责公司前端产品开发',
-    skills: ['React', 'Vue.js', 'TypeScript'],
-    education: 'bachelor',
-    salary: '15k-25k',
-    schools: ['清华大学', '北京大学'],
-    applicants: 23,
-    status: 'published',
-    createTime: '2024-01-10 10:30:00',
-    deadline: '2024-02-28'
-  },
-  {
-    id: 2,
-    title: '招聘AI算法工程师',
-    position: 'AI算法工程师',
-    count: 3,
-    location: '上海',
-    description: '负责AI算法研发',
-    skills: ['Python', 'TensorFlow', '机器学习'],
-    education: 'master',
-    salary: '20k-35k',
-    schools: ['复旦大学', '上海交大'],
-    applicants: 15,
-    status: 'published',
-    createTime: '2024-01-08 14:20:00',
-    deadline: '2024-03-15'
-  },
-  {
-    id: 3,
-    title: '招聘数据安全分析师',
-    position: '数据安全分析师',
-    count: 2,
-    location: '深圳',
-    description: '负责数据安全分析',
-    skills: ['网络安全', '数据加密'],
-    education: 'bachelor',
-    salary: '18k-28k',
-    schools: ['浙江大学'],
-    applicants: 8,
-    status: 'pending',
-    createTime: '2024-01-12 09:00:00',
-    deadline: null
+// 人才需求列表数据
+const demandList = ref([])
+
+// 验证token并获取人才需求列表
+const fetchDemands = async () => {
+  console.log('=== 开始获取真实人才需求列表 ===')
+  
+  try {
+    // 1. 验证token
+    const token = getValidToken()
+    console.log('Token验证结果:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    // 2. 获取用户信息
+    const userInfo = getUserInfoFromToken(token)
+    console.log('用户信息:', userInfo)
+    
+    if (!userInfo) {
+      ElMessage.error('Token无效，请重新登录')
+      router.push('/login')
+      return
+    }
+    
+    // 3. 发起API请求获取真实人才需求列表
+    console.log('🔄 开始获取真实人才需求数据...')
+    loading.value = true
+    
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.size,
+      keyword: searchForm.keyword || undefined,
+      status: searchForm.status || undefined
+    }
+    
+    console.log('📤 请求参数:', params)
+    console.log('🌐 请求地址: /api/enterprise/talent-demands')
+    
+    const response = await talentDemandApi.getEnterpriseList(params)
+    
+    console.log('📥 人才需求API响应:', response)
+    
+    // 4. 处理真实响应数据
+    if (response && (response.data || response.code === 200)) {
+      let data = response.data || response
+      
+      // 尝试多种可能的数据结构
+      let demands = []
+      let total = 0
+      
+      if (Array.isArray(data)) {
+        // 直接是数组格式
+        demands = data
+        total = data.length
+      } else if (typeof data === 'object') {
+        // 对象格式，包含list、records、demands等字段
+        demands = data.list || data.records || data.data || data.demands || []
+        total = data.total || data.count || demands.length
+      }
+      
+      demandList.value = demands
+      pagination.total = total
+      
+      console.log('✅ 真实数据处理完成:', {
+        listLength: demandList.value.length,
+        total: pagination.total,
+        dataSource: 'real_api'
+      })
+      
+      // 如果没有数据，提示用户
+      if (demands.length === 0) {
+        ElMessage.info('暂无人才需求数据，请先发布')
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('获取数据成功，但数据格式需要调整，请检查后端API')
+      demandList.value = []
+      pagination.total = 0
+    }
+    
+  } catch (error) {
+    console.error('❌ 获取真实人才需求列表失败:', error)
+    
+    // 详细的错误处理
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限访问人才需求数据')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('人才需求API接口不存在 (404)，请联系管理员')
+      // 404错误时不使用模拟数据，显示真实错误
+      console.log('🚫 API接口404，不使用模拟数据，等待后端部署')
+      demandList.value = []
+      pagination.total = 0
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+      // 500错误时不使用模拟数据，显示真实错误信息
+      console.log('🚫 服务器500错误，不使用模拟数据，等待后端修复')
+      demandList.value = []
+      pagination.total = 0
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+      console.log('🚫 网络错误，不使用模拟数据，等待网络恢复')
+      demandList.value = []
+      pagination.total = 0
+    } else {
+      ElMessage.error(`获取人才需求失败: ${error.message || '未知错误'}`)
+      console.log('🚫 API调用失败，不使用模拟数据，显示真实错误')
+      demandList.value = []
+      pagination.total = 0
+    }
+  } finally {
+    loading.value = false
   }
-])
+}
 
 onMounted(() => {
-  pagination.total = demandList.value.length
+  console.log('组件挂载，开始获取人才需求数据')
+  fetchDemands()
 })
 
 const getStatusTag = (status) => {
@@ -445,83 +548,292 @@ const handleView = (row) => {
   viewDialogVisible.value = true
 }
 
-const handleClose = (row) => {
-  ElMessageBox.confirm('确定要关闭该需求吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const index = demandList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      demandList.value[index].status = 'closed'
-      ElMessage.success('已关闭')
-    }
-  }).catch(() => {})
+// 跳转到详情页面
+const viewDetail = (row) => {
+  router.push({ name: 'TalentDemandDetail', params: { id: row.id } })
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该需求吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const index = demandList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      demandList.value.splice(index, 1)
-      pagination.total--
-      ElMessage.success('删除成功')
+const handleClose = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要关闭该需求吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    console.log('=== 开始关闭人才需求 ===')
+    console.log('关闭目标:', row)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
     }
-  }).catch(() => {})
+    
+    console.log('📤 关闭人才需求请求')
+    console.log('🌐 请求地址: /api/enterprise/talent-demands/{id}/close')
+    
+    const response = await talentDemandApi.closeEnterprise(row.id)
+    
+    console.log('📥 关闭人才需求API响应:', response)
+    
+    // 处理关闭响应
+    if (response && (response.data || response.code === 200)) {
+      console.log('✅ 人才需求关闭成功')
+      ElMessage.success('人才需求已关闭')
+      
+      // 更新本地列表数据
+      const index = demandList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        demandList.value[index].status = 'closed'
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('关闭成功，但响应格式需要调整，请检查后端API')
+      // 即使响应格式异常，也认为关闭成功
+      const index = demandList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        demandList.value[index].status = 'closed'
+      }
+    }
+    
+  } catch (error) {
+    if (error === 'cancel') {
+      console.log('🚫 用户取消关闭操作')
+      return
+    }
+    
+    console.error('❌ 关闭人才需求失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限关闭人才需求')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('人才需求API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`关闭人才需求失败: ${error.message || '未知错误'}`)
+    }
+  }
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该人才需求吗？删除后不可恢复。', '删除确认', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    console.log('=== 开始删除人才需求 ===')
+    console.log('删除目标:', row)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    console.log('🗑️ 删除人才需求，调用真实API')
+    console.log('📤 删除人才需求ID:', row.id)
+    console.log('🌐 请求地址: /api/enterprise/talent-demands/{id}')
+    
+    // 调用真实删除API
+    const response = await talentDemandApi.deleteEnterprise(row.id)
+    
+    console.log('📥 删除人才需求API响应:', response)
+    
+    // 处理删除响应
+    if (response && (response.data || response.code === 200 || response.success)) {
+      console.log('✅ 人才需求删除成功')
+      ElMessage.success('人才需求删除成功')
+      
+      // 从本地列表中移除
+      const index = demandList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        demandList.value.splice(index, 1)
+        pagination.total--
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('删除成功，但响应格式需要调整，请检查后端API')
+      // 即使响应格式异常，也认为删除成功
+      const index = demandList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        demandList.value.splice(index, 1)
+        pagination.total--
+      }
+    }
+    
+  } catch (error) {
+    if (error === 'cancel') {
+      console.log('🚫 用户取消删除操作')
+      return
+    }
+    
+    console.error('❌ 删除人才需求失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限删除人才需求')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('删除API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`删除人才需求失败: ${error.message || '未知错误'}`)
+    }
+  }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      submitLoading.value = true
-      setTimeout(() => {
-        const schoolNames = {
-          tsinghua: '清华大学',
-          pku: '北京大学',
-          fudan: '复旦大学',
-          sjtu: '上海交通大学',
-          zju: '浙江大学'
-        }
+  try {
+    const valid = await formRef.value.validate()
+    if (!valid) return
+    
+    console.log('=== 开始提交人才需求 ===')
+    console.log('编辑模式:', isEdit.value)
+    console.log('表单数据:', formData)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    submitLoading.value = true
+    
+    // 处理学校数据映射
+    const schoolNames = {
+      tsinghua: '清华大学',
+      pku: '北京大学',
+      fudan: '复旦大学',
+      sjtu: '上海交通大学',
+      zju: '浙江大学'
+    }
+    
+    const requestData = {
+      title: formData.title,
+      position: formData.position,
+      count: formData.count,
+      location: formData.location,
+      description: formData.description,
+      skills: formData.skills,
+      education: formData.education,
+      salary: formData.salary,
+      schools: formData.schools.map(key => schoolNames[key] || key),
+      deadline: formData.deadline ? new Date(formData.deadline).toISOString().split('T')[0] : null
+    }
+    
+    if (isEdit.value) {
+      // 编辑模式 - 调用真实API
+      console.log('📝 编辑人才需求，调用真实API')
+      
+      console.log('📤 更新请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/talent-demands/{id}')
+      
+      const response = await talentDemandApi.updateEnterprise(formData.id, requestData)
+      
+      console.log('📥 更新人才需求API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200)) {
+        console.log('✅ 人才需求更新成功')
+        ElMessage.success('人才需求更新成功')
         
-        const schools = formData.schools.map(key => schoolNames[key] || key)
-        
-        if (isEdit.value) {
-          const index = demandList.value.findIndex(item => item.id === formData.id)
-          if (index > -1) {
-            Object.assign(demandList.value[index], {
-              ...formData,
-              skills: [...formData.skills],
-              schools: schools,
-              createTime: demandList.value[index].createTime
-            })
-            ElMessage.success('更新成功')
-          }
-        } else {
-          demandList.value.unshift({
-            id: Date.now(),
-            ...formData,
-            skills: [...formData.skills],
-            schools: schools,
-            applicants: 0,
-            status: 'pending',
-            createTime: new Date().toLocaleString('zh-CN'),
-            deadline: formData.deadline ? new Date(formData.deadline).toLocaleDateString('zh-CN') : null
+        // 更新本地列表数据
+        const index = demandList.value.findIndex(item => item.id === formData.id)
+        if (index > -1) {
+          Object.assign(demandList.value[index], {
+            ...requestData,
+            createTime: demandList.value[index].createTime
           })
-          pagination.total++
-          ElMessage.success('发布成功，等待审核')
         }
-        submitLoading.value = false
+        
+        // 关闭对话框并重置表单
         dialogVisible.value = false
         resetForm()
-      }, 500)
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('更新成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+      }
+    } else {
+      // 新增模式 - 调用真实API
+      console.log('➕ 创建新人才需求，调用真实API')
+      
+      console.log('📤 请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/talent-demands')
+      
+      const response = await talentDemandApi.createEnterprise(requestData)
+      
+      console.log('📥 创建人才需求API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200 || response.id)) {
+        console.log('✅ 人才需求创建成功')
+        ElMessage.success('人才需求发布成功，等待审核')
+        
+        // 关闭对话框并重置表单
+        dialogVisible.value = false
+        resetForm()
+        
+        // 刷新列表数据
+        await fetchDemands()
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('发布成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+        await fetchDemands()
+      }
     }
-  })
+    
+  } catch (error) {
+    console.error('❌ 提交人才需求失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限发布人才需求')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('人才需求API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`发布人才需求失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 不使用本地模拟创建，显示真实错误
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 const handleDialogClose = () => {
@@ -545,21 +857,46 @@ const resetForm = () => {
   formRef.value?.clearValidate()
 }
 
-const handleSearch = () => {
-  ElMessage.info('搜索功能开发中')
+const handleSearch = async () => {
+  console.log('执行搜索操作:', searchForm)
+  pagination.page = 1 // 重置到第一页
+  await fetchDemands()
 }
 
 const handleReset = () => {
   searchForm.keyword = ''
   searchForm.status = ''
+  // 重置后重新加载数据
+  handleSearch()
 }
 
-const handleSizeChange = (size) => {
+const handleSizeChange = async (size) => {
   pagination.size = size
+  pagination.page = 1
+  await fetchDemands()
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = async (page) => {
   pagination.page = page
+  await fetchDemands()
+}
+
+// 刷新数据（强制获取真实数据）
+const handleRefresh = async () => {
+  console.log('🔄 手动刷新人才需求数据')
+  
+  // 清除可能存在的演示数据标识
+  demandList.value = []
+  pagination.total = 0
+  
+  // 重新获取数据
+  await fetchDemands()
+  
+  if (demandList.value.some(item => item._isDemo)) {
+    ElMessage.warning('刷新后仍显示演示数据，请检查后端API连接')
+  } else {
+    ElMessage.success('数据刷新成功')
+  }
 }
 </script>
 
@@ -571,6 +908,16 @@ const handlePageChange = (page) => {
     align-items: center;
     font-weight: 600;
     font-size: 16px;
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
   }
   
   .search-form {

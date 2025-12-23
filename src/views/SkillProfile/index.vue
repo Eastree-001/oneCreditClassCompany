@@ -355,9 +355,6 @@ const fetchProfiles = async () => {
         dataSource: 'real_api'
       })
       
-      // 显示成功消息
-      ElMessage.success(`成功获取 ${profiles.length} 条岗位技能画像数据`)
-      
       // 如果没有数据，提示用户
       if (profiles.length === 0) {
         ElMessage.info('暂无岗位技能画像数据，请先创建')

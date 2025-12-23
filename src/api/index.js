@@ -141,6 +141,74 @@ export const cooperationApi = {
   // 删除合作
   delete: (id) => {
     return request.delete(`${API_ENDPOINTS.COOPERATION.DELETE}/${id}`)
+  },
+  
+  // 获取企业合作项目列表（需要token验证）
+  getEnterpriseList: (params) => {
+    console.log('=== 调用getEnterpriseList API ===')
+    console.log('端点:', API_ENDPOINTS.COOPERATION.ENTERPRISE_LIST)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.COOPERATION.ENTERPRISE_LIST, { params })
+    console.log('企业合作项目API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 获取单个合作项目详情（需要token验证）
+  getDetail: (id) => {
+    console.log('=== 调用getDetail API ===')
+    console.log('端点:', `${API_ENDPOINTS.COOPERATION.DETAIL}/${id}`)
+    console.log('合作项目ID:', id)
+    
+    const result = request.get(`${API_ENDPOINTS.COOPERATION.DETAIL}/${id}`)
+    console.log('合作项目详情API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 创建企业合作项目（需要token验证）
+  createEnterprise: (data) => {
+    console.log('=== 调用createEnterprise API ===')
+    console.log('端点:', API_ENDPOINTS.COOPERATION.ENTERPRISE_CREATE)
+    console.log('请求数据:', data)
+    
+    const result = request.post(API_ENDPOINTS.COOPERATION.ENTERPRISE_CREATE, data)
+    console.log('企业合作项目创建API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 更新企业合作项目（需要token验证）
+  updateEnterprise: (id, data) => {
+    console.log('=== 调用updateEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.COOPERATION.ENTERPRISE_UPDATE}/${id}`)
+    console.log('合作项目ID:', id)
+    console.log('更新数据:', data)
+    
+    const result = request.put(`${API_ENDPOINTS.COOPERATION.ENTERPRISE_UPDATE}/${id}`, data)
+    console.log('企业合作项目更新API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 更新企业合作项目进度（需要token验证）
+  updateProgress: (id, progressData) => {
+    console.log('=== 调用updateProgress API ===')
+    console.log('端点:', `${API_ENDPOINTS.COOPERATION.ENTERPRISE_PROGRESS}/${id}/progress`)
+    console.log('合作项目ID:', id)
+    console.log('进度数据:', progressData)
+    
+    const result = request.put(`${API_ENDPOINTS.COOPERATION.ENTERPRISE_PROGRESS}/${id}/progress`, progressData)
+    console.log('企业合作项目进度更新API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 删除企业合作项目（需要token验证）
+  deleteEnterprise: (id) => {
+    console.log('=== 调用deleteEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.COOPERATION.ENTERPRISE_DELETE}/${id}`)
+    console.log('合作项目ID:', id)
+    
+    const result = request.delete(`${API_ENDPOINTS.COOPERATION.ENTERPRISE_DELETE}/${id}`)
+    console.log('企业合作项目删除API调用已发送，等待响应...')
+    return result
   }
 }
 
@@ -151,7 +219,74 @@ export const talentDemandApi = {
     return request.get(API_ENDPOINTS.TALENT_DEMAND.LIST, { params })
   },
   
-  // 创建人才需求
+  // 获取企业人才需求列表（需要token验证）
+  getEnterpriseList: (params) => {
+    console.log('=== 调用getEnterpriseList API ===')
+    console.log('端点:', API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_LIST)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_LIST, { params })
+    console.log('企业人才需求API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 获取单个人才需求详情（需要token验证）
+  getDetail: (id) => {
+    console.log('=== 调用getDetail API ===')
+    console.log('端点:', `${API_ENDPOINTS.TALENT_DEMAND.DETAIL}/${id}`)
+    console.log('人才需求ID:', id)
+    
+    const result = request.get(`${API_ENDPOINTS.TALENT_DEMAND.DETAIL}/${id}`)
+    console.log('人才需求详情API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 创建企业人才需求（需要token验证）
+  createEnterprise: (data) => {
+    console.log('=== 调用createEnterprise API ===')
+    console.log('端点:', API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_CREATE)
+    console.log('请求数据:', data)
+    
+    const result = request.post(API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_CREATE, data)
+    console.log('企业人才需求创建API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 更新企业人才需求（需要token验证）
+  updateEnterprise: (id, data) => {
+    console.log('=== 调用updateEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_UPDATE}/${id}`)
+    console.log('人才需求ID:', id)
+    console.log('更新数据:', data)
+    
+    const result = request.put(`${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_UPDATE}/${id}`, data)
+    console.log('企业人才需求更新API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 关闭企业人才需求（需要token验证）
+  closeEnterprise: (id) => {
+    console.log('=== 调用closeEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_CLOSE}/${id}/close`)
+    console.log('人才需求ID:', id)
+    
+    const result = request.put(`${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_CLOSE}/${id}/close`)
+    console.log('企业人才需求关闭API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 删除企业人才需求（需要token验证）
+  deleteEnterprise: (id) => {
+    console.log('=== 调用deleteEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_DELETE}/${id}`)
+    console.log('人才需求ID:', id)
+    
+    const result = request.delete(`${API_ENDPOINTS.TALENT_DEMAND.ENTERPRISE_DELETE}/${id}`)
+    console.log('企业人才需求删除API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 创建人才需求（普通版本）
   create: (data) => {
     return request.post(API_ENDPOINTS.TALENT_DEMAND.CREATE, data)
   },
@@ -253,7 +388,93 @@ export const trainingApi = {
     return request.get(API_ENDPOINTS.TRAINING.LIST, { params })
   },
   
-  // 创建培训
+  // 获取企业培训计划列表（需要token验证）
+  getEnterpriseList: (params) => {
+    console.log('=== 调用getEnterpriseList API ===')
+    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_LIST)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.TRAINING.ENTERPRISE_LIST, { params })
+    console.log('企业培训计划API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 获取可选课程列表（需要token验证）
+  getAvailableCourses: (params) => {
+    console.log('=== 调用getAvailableCourses API ===')
+    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_AVAILABLE_COURSES)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.TRAINING.ENTERPRISE_AVAILABLE_COURSES, { params })
+    console.log('可选课程API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 获取单个培训计划详情（需要token验证）
+  getDetail: (id) => {
+    console.log('=== 调用getDetail API ===')
+    console.log('端点:', `${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
+    console.log('培训计划ID:', id)
+    
+    const result = request.get(`${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
+    console.log('培训计划详情API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 创建企业培训计划（需要token验证）
+  createEnterprise: (data) => {
+    console.log('=== 调用createEnterprise API ===')
+    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE)
+    console.log('请求数据:', data)
+    
+    const result = request.post(API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE, data)
+    console.log('企业培训计划创建API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 更新企业培训计划（需要token验证）
+  updateEnterprise: (id, data) => {
+    console.log('=== 调用updateEnterprise API ===')
+    const url = `${API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE}/${id}`
+    console.log('完整URL:', url)
+    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE)
+    console.log('培训计划ID:', id)
+    console.log('更新数据:', data)
+    console.log('课程数据详情:', {
+      courses: data.courses,
+      coursesType: typeof data.courses,
+      coursesLength: data.courses ? data.courses.length : 0
+    })
+    
+    const result = request.put(url, data)
+    console.log('企业培训计划更新API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 更新企业培训计划进度（需要token验证）
+  updateProgress: (id, progressData) => {
+    console.log('=== 调用updateProgress API ===')
+    console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`)
+    console.log('培训计划ID:', id)
+    console.log('进度数据:', progressData)
+    
+    const result = request.put(`${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`, progressData)
+    console.log('企业培训计划进度更新API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 删除企业培训计划（需要token验证）
+  deleteEnterprise: (id) => {
+    console.log('=== 调用deleteEnterprise API ===')
+    console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
+    console.log('培训计划ID:', id)
+    
+    const result = request.delete(`${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
+    console.log('企业培训计划删除API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 创建培训（普通版本）
   create: (data) => {
     return request.post(API_ENDPOINTS.TRAINING.CREATE, data)
   },

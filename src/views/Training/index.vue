@@ -59,7 +59,7 @@
         <el-table-column prop="startTime" label="开始时间" width="120" />
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="View" @click="handleView(row)">查看</el-button>
+            <el-button type="primary" link :icon="View" @click="viewDetail(row)">查看详情</el-button>
             <el-button
               v-if="row.status === 'pending' || row.status === 'ongoing'"
               type="primary"
@@ -241,6 +241,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
@@ -251,7 +252,10 @@ import {
   View,
   InfoFilled
 } from '@element-plus/icons-vue'
+import { trainingApi } from '@/api'
+import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
 
+const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -308,83 +312,237 @@ const formRules = {
   endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }]
 }
 
-const availableCourses = ref([
-  { id: 1, name: 'React 前端开发实战', school: '清华大学', teacher: '张教授', duration: 32 },
-  { id: 2, name: '现代Web开发技术栈', school: '北京大学', teacher: '李教授', duration: 40 },
-  { id: 3, name: '云数据库应用开发', school: '复旦大学', teacher: '王教授', duration: 24 },
-  { id: 4, name: '工作流自动化工具', school: '上海交大', teacher: '陈教授', duration: 16 },
-  { id: 5, name: 'TypeScript 高级编程', school: '浙江大学', teacher: '刘教授', duration: 28 },
-  { id: 6, name: 'Python 机器学习', school: '清华大学', teacher: '赵教授', duration: 36 },
-  { id: 7, name: '深度学习实战', school: '北京大学', teacher: '孙教授', duration: 42 }
-])
+const availableCourses = ref([])
 
-const planList = ref([
-  {
-    id: 1,
-    name: '新员工前端技能培训',
-    type: 'onboarding',
-    status: 'ongoing',
-    participants: 15,
-    duration: '2周',
-    description: '为新入职的前端工程师提供技能培训',
-    courses: [
-      { name: 'React 前端开发实战', school: '清华大学', teacher: '张教授', duration: 32 },
-      { name: 'TypeScript 高级编程', school: '浙江大学', teacher: '刘教授', duration: 28 }
-    ],
-    progress: 65,
-    startTime: '2024-01-10',
-    endTime: '2024-01-24'
-  },
-  {
-    id: 2,
-    name: 'AI算法工程师提升培训',
-    type: 'skill',
-    status: 'ongoing',
-    participants: 8,
-    duration: '4周',
-    description: '提升现有AI算法工程师的技能水平',
-    courses: [
-      { name: 'Python 机器学习', school: '清华大学', teacher: '赵教授', duration: 36 },
-      { name: '深度学习实战', school: '北京大学', teacher: '孙教授', duration: 42 }
-    ],
-    progress: 45,
-    startTime: '2024-01-15',
-    endTime: '2024-02-12'
-  },
-  {
-    id: 3,
-    name: '数据安全分析师专项培训',
-    type: 'position',
-    status: 'completed',
-    participants: 12,
-    duration: '3周',
-    description: '为数据安全分析师岗位提供专项培训',
-    courses: [
-      { name: '网络安全基础', school: '复旦大学', teacher: '周教授', duration: 24 }
-    ],
-    progress: 100,
-    startTime: '2023-12-01',
-    endTime: '2023-12-22'
-  },
-  {
-    id: 4,
-    name: 'AIGC内容设计师培训',
-    type: 'onboarding',
-    status: 'pending',
-    participants: 5,
-    duration: '2周',
-    description: '为新入职的AIGC内容设计师提供培训',
-    courses: [
-      { name: 'AIGC工具使用', school: '上海交大', teacher: '吴教授', duration: 20 }
-    ],
-    progress: 0,
-    startTime: '2024-02-01',
-    endTime: '2024-02-15'
+// 培训计划列表数据
+const planList = ref([])
+
+// 获取可选课程列表
+const fetchAvailableCourses = async () => {
+  console.log('=== 开始获取可选课程列表 ===')
+  
+  try {
+    // 1. 验证token
+    const token = getValidToken()
+    console.log('Token验证结果:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    // 2. 获取用户信息
+    const userInfo = getUserInfoFromToken(token)
+    console.log('用户信息:', userInfo)
+    
+    if (!userInfo) {
+      ElMessage.error('Token无效，请重新登录')
+      router.push('/login')
+      return
+    }
+    
+    // 3. 发起API请求获取可选课程列表
+    console.log('🔄 开始获取可选课程数据...')
+    
+    console.log('🌐 请求地址: /api/enterprise/training-plans/available-courses')
+    
+    const response = await trainingApi.getAvailableCourses()
+    
+    console.log('📥 可选课程API响应:', response)
+    
+    // 4. 处理真实响应数据
+    if (response && (response.data || response.code === 200)) {
+      let data = response.data || response
+      
+      // 尝试多种可能的数据结构
+      let courses = []
+      
+      if (Array.isArray(data)) {
+        // 直接是数组格式
+        courses = data
+      } else if (typeof data === 'object') {
+        // 对象格式，包含list、records、courses等字段
+        courses = data.list || data.records || data.data || data.courses || []
+      }
+      
+      availableCourses.value = courses
+      
+      console.log('✅ 可选课程数据处理完成:', {
+        coursesLength: availableCourses.value.length,
+        dataSource: 'real_api'
+      })
+      
+      // 如果没有课程，提示用户
+      if (courses.length === 0) {
+        console.log('暂无可选课程数据')
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      availableCourses.value = []
+    }
+    
+  } catch (error) {
+    console.error('❌ 获取可选课程列表失败:', error)
+    
+    // 详细的错误处理
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      console.log('没有权限访问可选课程数据')
+    } else if (error.response?.status === 404) {
+      console.log('可选课程API接口不存在 (404)，使用默认课程列表')
+    } else if (error.response?.status === 500) {
+      console.log('服务器内部错误，使用默认课程列表')
+      console.error('🔥 500错误详情:', error.response?.data)
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      console.log('网络连接失败，使用默认课程列表')
+    } else {
+      console.log(`获取可选课程失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 在任何错误情况下，都使用默认的课程列表作为备选
+    availableCourses.value = [
+      { id: 1, name: 'React 前端开发实战', school: '清华大学', teacher: '张教授', duration: 32 },
+      { id: 2, name: '现代Web开发技术栈', school: '北京大学', teacher: '李教授', duration: 40 },
+      { id: 3, name: '云数据库应用开发', school: '复旦大学', teacher: '王教授', duration: 24 },
+      { id: 4, name: '工作流自动化工具', school: '上海交大', teacher: '陈教授', duration: 16 },
+      { id: 5, name: 'TypeScript 高级编程', school: '浙江大学', teacher: '刘教授', duration: 28 },
+      { id: 6, name: 'Python 机器学习', school: '清华大学', teacher: '赵教授', duration: 36 },
+      { id: 7, name: '深度学习实战', school: '北京大学', teacher: '孙教授', duration: 42 }
+    ]
   }
-])
+}
+
+// 验证token并获取培训计划列表
+const fetchTrainingPlans = async () => {
+  console.log('=== 开始获取真实培训计划列表 ===')
+  
+  try {
+    // 1. 验证token
+    const token = getValidToken()
+    console.log('Token验证结果:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    // 2. 获取用户信息
+    const userInfo = getUserInfoFromToken(token)
+    console.log('用户信息:', userInfo)
+    
+    if (!userInfo) {
+      ElMessage.error('Token无效，请重新登录')
+      router.push('/login')
+      return
+    }
+    
+    // 3. 发起API请求获取真实培训计划列表
+    console.log('🔄 开始获取真实培训计划数据...')
+    loading.value = true
+    
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.size,
+      keyword: searchForm.keyword || undefined,
+      status: searchForm.status || undefined
+    }
+    
+    console.log('📤 请求参数:', params)
+    console.log('🌐 请求地址: /api/enterprise/training-plans')
+    
+    const response = await trainingApi.getEnterpriseList(params)
+    
+    console.log('📥 培训计划API响应:', response)
+    
+    // 4. 处理真实响应数据
+    if (response && (response.data || response.code === 200)) {
+      let data = response.data || response
+      
+      // 尝试多种可能的数据结构
+      let plans = []
+      let total = 0
+      
+      if (Array.isArray(data)) {
+        // 直接是数组格式
+        plans = data
+        total = data.length
+      } else if (typeof data === 'object') {
+        // 对象格式，包含list、records、plans等字段
+        plans = data.list || data.records || data.data || data.plans || []
+        total = data.total || data.count || plans.length
+      }
+      
+      planList.value = plans
+      pagination.total = total
+      
+      console.log('✅ 真实数据处理完成:', {
+        listLength: planList.value.length,
+        total: pagination.total,
+        dataSource: 'real_api'
+      })
+      
+      // 如果没有数据，提示用户
+      if (plans.length === 0) {
+        ElMessage.info('暂无培训计划数据，请先创建')
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('获取数据成功，但数据格式需要调整，请检查后端API')
+      planList.value = []
+      pagination.total = 0
+    }
+    
+  } catch (error) {
+    console.error('❌ 获取真实培训计划列表失败:', error)
+    
+    // 详细的错误处理
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限访问培训计划数据')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('培训计划API接口不存在 (404)，请联系管理员')
+      planList.value = []
+      pagination.total = 0
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+      planList.value = []
+      pagination.total = 0
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+      planList.value = []
+      pagination.total = 0
+    } else {
+      ElMessage.error(`获取培训计划失败: ${error.message || '未知错误'}`)
+      planList.value = []
+      pagination.total = 0
+    }
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(() => {
-  pagination.total = planList.value.length
+  console.log('培训计划页面挂载，开始获取培训计划数据')
+  // 并行获取培训计划列表和可选课程列表
+  Promise.all([
+    fetchTrainingPlans(),
+    fetchAvailableCourses()
+  ])
 })
 
 const getTypeTag = (type) => {
@@ -456,60 +614,207 @@ const handleView = (row) => {
   viewDialogVisible.value = true
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该培训计划吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const index = planList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      planList.value.splice(index, 1)
-      pagination.total--
-      ElMessage.success('删除成功')
+// 跳转到详情页面
+const viewDetail = (row) => {
+  router.push({ name: 'TrainingDetail', params: { id: row.id } })
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该培训计划吗？删除后不可恢复。', '删除确认', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    console.log('=== 开始删除培训计划 ===')
+    console.log('删除目标:', row)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
     }
-  }).catch(() => {})
+    
+    console.log('🗑️ 删除培训计划，调用真实API')
+    console.log('📤 删除培训计划ID:', row.id)
+    console.log('🌐 请求地址: /api/enterprise/training-plans/{id}')
+    
+    // 调用真实删除API
+    const response = await trainingApi.deleteEnterprise(row.id)
+    
+    console.log('📥 删除培训计划API响应:', response)
+    
+    // 处理删除响应
+    if (response && (response.data || response.code === 200 || response.success)) {
+      console.log('✅ 培训计划删除成功')
+      ElMessage.success('培训计划删除成功')
+      
+      // 从本地列表中移除
+      const index = planList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        planList.value.splice(index, 1)
+        pagination.total--
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('删除成功，但响应格式需要调整，请检查后端API')
+      // 即使响应格式异常，也认为删除成功
+      const index = planList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        planList.value.splice(index, 1)
+        pagination.total--
+      }
+    }
+    
+  } catch (error) {
+    if (error === 'cancel') {
+      console.log('🚫 用户取消删除操作')
+      return
+    }
+    
+    console.error('❌ 删除培训计划失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限删除培训计划')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('删除API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`删除培训计划失败: ${error.message || '未知错误'}`)
+    }
+  }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      submitLoading.value = true
-      setTimeout(() => {
-        const selectedCourses = availableCourses.value.filter(c => formData.courses.includes(c.id))
+  try {
+    const valid = await formRef.value.validate()
+    if (!valid) return
+    
+    console.log('=== 开始提交培训计划 ===')
+    console.log('编辑模式:', isEdit.value)
+    console.log('表单数据:', formData)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    submitLoading.value = true
+    
+    const requestData = {
+      name: formData.name,
+      type: formData.type,
+      participants: formData.participants,
+      duration: formData.duration,
+      description: formData.description,
+      courses: formData.courses,
+      startTime: formData.startTime ? new Date(formData.startTime).toISOString().split('T')[0] : null,
+      endTime: formData.endTime ? new Date(formData.endTime).toISOString().split('T')[0] : null
+    }
+    
+    if (isEdit.value) {
+      // 编辑模式 - 调用真实API
+      console.log('📝 编辑培训计划，调用真实API')
+      
+      console.log('📤 更新请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/training-plans/{id}')
+      
+      const response = await trainingApi.updateEnterprise(formData.id, requestData)
+      
+      console.log('📥 更新培训计划API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200)) {
+        console.log('✅ 培训计划更新成功')
+        ElMessage.success('培训计划更新成功')
         
-        if (isEdit.value) {
-          const index = planList.value.findIndex(item => item.id === formData.id)
-          if (index > -1) {
-            Object.assign(planList.value[index], {
-              ...formData,
-              courses: selectedCourses,
-              status: planList.value[index].status,
-              progress: planList.value[index].progress
-            })
-            ElMessage.success('更新成功')
-          }
-        } else {
-          planList.value.unshift({
-            id: Date.now(),
-            ...formData,
-            courses: selectedCourses,
-            status: 'pending',
-            progress: 0,
-            startTime: formData.startTime ? new Date(formData.startTime).toLocaleDateString('zh-CN') : '',
-            endTime: formData.endTime ? new Date(formData.endTime).toLocaleDateString('zh-CN') : ''
+        // 更新本地列表数据
+        const index = planList.value.findIndex(item => item.id === formData.id)
+        if (index > -1) {
+          Object.assign(planList.value[index], {
+            ...requestData,
+            createTime: planList.value[index].createTime
           })
-          pagination.total++
-          ElMessage.success('创建成功')
         }
-        submitLoading.value = false
+        
+        // 关闭对话框并重置表单
         dialogVisible.value = false
         resetForm()
-      }, 500)
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('更新成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+      }
+    } else {
+      // 新增模式 - 调用真实API
+      console.log('➕ 创建新培训计划，调用真实API')
+      
+      console.log('📤 请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/training-plans')
+      
+      const response = await trainingApi.createEnterprise(requestData)
+      
+      console.log('📥 创建培训计划API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200 || response.id)) {
+        console.log('✅ 培训计划创建成功')
+        ElMessage.success('培训计划创建成功')
+        
+        // 关闭对话框并重置表单
+        dialogVisible.value = false
+        resetForm()
+        
+        // 刷新列表数据
+        await fetchTrainingPlans()
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('创建成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+        await fetchTrainingPlans()
+      }
     }
-  })
+    
+  } catch (error) {
+    console.error('❌ 提交培训计划失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限创建培训计划')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('培训计划API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`创建培训计划失败: ${error.message || '未知错误'}`)
+    }
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 const handleDialogClose = () => {
@@ -531,21 +836,28 @@ const resetForm = () => {
   formRef.value?.clearValidate()
 }
 
-const handleSearch = () => {
-  ElMessage.info('搜索功能开发中')
+const handleSearch = async () => {
+  console.log('执行搜索操作:', searchForm)
+  pagination.page = 1 // 重置到第一页
+  await fetchTrainingPlans()
 }
 
 const handleReset = () => {
   searchForm.keyword = ''
   searchForm.status = ''
+  // 重置后重新加载数据
+  handleSearch()
 }
 
-const handleSizeChange = (size) => {
+const handleSizeChange = async (size) => {
   pagination.size = size
+  pagination.page = 1
+  await fetchTrainingPlans()
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = async (page) => {
   pagination.page = page
+  await fetchTrainingPlans()
 }
 </script>
 

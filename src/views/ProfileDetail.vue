@@ -202,9 +202,6 @@ const fetchProfileDetail = async (id) => {
       // 设置详情数据
       profileDetail.value = data
       
-      // 显示成功消息
-      ElMessage.success('成功获取岗位画像详情')
-      
     } else {
       console.warn('⚠️ API响应数据格式异常:', response)
       ElMessage.warning('获取数据成功，但数据格式需要调整，请检查后端API')

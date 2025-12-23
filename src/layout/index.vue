@@ -89,8 +89,7 @@ const menuList = [
   { path: '/course-match', title: '课程匹配', icon: 'Connection' },
   { path: '/talent-demand', title: '人才需求发布', icon: 'Promotion' },
   { path: '/cooperation', title: '合作项目管理', icon: 'Document' },
-  { path: '/training', title: '培训计划管理', icon: 'Calendar' },
-  { path: '/token-test', title: 'Token测试', icon: 'Tools' }
+  { path: '/training', title: '培训计划管理', icon: 'Calendar' }
 ]
 
 const activeMenu = computed(() => route.path)

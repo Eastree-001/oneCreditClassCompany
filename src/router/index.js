@@ -45,10 +45,22 @@ const routes = [
         meta: { title: '人才需求发布', icon: 'Promotion', requiresAuth: true }
       },
       {
+        path: 'talent-demand/:id',
+        name: 'TalentDemandDetail',
+        component: () => import('@/views/TalentDemandDetail.vue'),
+        meta: { title: '人才需求详情', icon: 'Promotion', requiresAuth: true }
+      },
+      {
         path: 'cooperation',
         name: 'Cooperation',
         component: () => import('@/views/Cooperation/index.vue'),
         meta: { title: '合作项目管理', icon: 'Document', requiresAuth: true }
+      },
+      {
+        path: 'cooperation/:id',
+        name: 'CooperationDetail',
+        component: () => import('@/views/CooperationDetail.vue'),
+        meta: { title: '合作项目详情', icon: 'Document', requiresAuth: true }
       },
       {
         path: 'training',
@@ -57,28 +69,10 @@ const routes = [
         meta: { title: '培训计划管理', icon: 'Calendar', requiresAuth: true }
       },
       {
-        path: 'token-test',
-        name: 'TokenTest',
-        component: () => import('@/views/TokenTest.vue'),
-        meta: { title: 'Token测试', icon: 'Tools', requiresAuth: true }
-      },
-      {
-        path: 'create-profile-test',
-        name: 'CreateProfileTest',
-        component: () => import('@/views/CreateProfileTest.vue'),
-        meta: { title: '创建岗位画像测试', icon: 'Tools', requiresAuth: true }
-      },
-      {
-        path: 'update-profile-test',
-        name: 'UpdateProfileTest',
-        component: () => import('@/views/UpdateProfileTest.vue'),
-        meta: { title: '更新岗位画像测试', icon: 'Tools', requiresAuth: true }
-      },
-      {
-        path: 'delete-profile-test',
-        name: 'DeleteProfileTest',
-        component: () => import('@/views/DeleteProfileTest.vue'),
-        meta: { title: '删除岗位画像测试', icon: 'Tools', requiresAuth: true }
+        path: 'training/:id',
+        name: 'TrainingDetail',
+        component: () => import('@/views/TrainingDetail.vue'),
+        meta: { title: '培训计划详情', icon: 'Calendar', requiresAuth: true }
       }
     ]
   }

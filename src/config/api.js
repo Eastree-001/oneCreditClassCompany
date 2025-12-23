@@ -39,7 +39,13 @@ export const API_ENDPOINTS = {
     LIST: '/cooperation/list',
     CREATE: '/cooperation/create',
     UPDATE: '/cooperation/update',
-    DELETE: '/cooperation/delete'
+    DELETE: '/cooperation/delete',
+    ENTERPRISE_LIST: '/enterprise/cooperation-projects',  // GET /enterprise/cooperation-projects
+    ENTERPRISE_CREATE: '/enterprise/cooperation-projects',  // POST /enterprise/cooperation-projects
+    ENTERPRISE_UPDATE: '/enterprise/cooperation-projects',  // PUT /enterprise/cooperation-projects/{id}
+    ENTERPRISE_DELETE: '/enterprise/cooperation-projects',  // DELETE /enterprise/cooperation-projects/{id}
+    ENTERPRISE_PROGRESS: '/enterprise/cooperation-projects',  // PUT /enterprise/cooperation-projects/{id}/progress
+    DETAIL: '/enterprise/cooperation-projects'  // GET /enterprise/cooperation-projects/{id}
   },
   
   // 人才需求相关
@@ -47,7 +53,13 @@ export const API_ENDPOINTS = {
     LIST: '/talent-demand/list',
     CREATE: '/talent-demand/create',
     UPDATE: '/talent-demand/update',
-    DELETE: '/talent-demand/delete'
+    DELETE: '/talent-demand/delete',
+    ENTERPRISE_LIST: '/enterprise/talent-demands',  // GET /enterprise/talent-demands
+    ENTERPRISE_CREATE: '/enterprise/talent-demands',  // POST /enterprise/talent-demands
+    ENTERPRISE_UPDATE: '/enterprise/talent-demands',  // PUT /enterprise/talent-demands/{id}
+    ENTERPRISE_DELETE: '/enterprise/talent-demands',  // DELETE /enterprise/talent-demands/{id}
+    ENTERPRISE_CLOSE: '/enterprise/talent-demands',  // PUT /enterprise/talent-demands/{id}/close
+    DETAIL: '/enterprise/talent-demands'  // GET /enterprise/talent-demands/{id}
   },
   
   // 技能画像相关
@@ -68,7 +80,14 @@ export const API_ENDPOINTS = {
     LIST: '/training/list',
     CREATE: '/training/create',
     UPDATE: '/training/update',
-    DELETE: '/training/delete'
+    DELETE: '/training/delete',
+    ENTERPRISE_LIST: '/enterprise/training-plans',  // GET /enterprise/training-plans
+    ENTERPRISE_CREATE: '/enterprise/training-plans',  // POST /enterprise/training-plans
+    ENTERPRISE_UPDATE: '/enterprise/training-plans',  // PUT /enterprise/training-plans/{id}
+    ENTERPRISE_DELETE: '/enterprise/training-plans',  // DELETE /enterprise/training-plans/{id}
+    ENTERPRISE_PROGRESS: '/enterprise/training-plans',  // PUT /enterprise/training-plans/{id}/progress
+    ENTERPRISE_AVAILABLE_COURSES: '/enterprise/training-plans/available-courses',  // GET /enterprise/training-plans/available-courses
+    DETAIL: '/enterprise/training-plans'  // GET /enterprise/training-plans/{id}
   },
   
   // 课程匹配相关
