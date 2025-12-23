@@ -188,12 +188,26 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { userApi } from '@/api'
+import { useUserStore } from '@/stores/user'
 import { School, Connection, User, Document, OfficeBuilding, Message, Phone, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const userStore = useUserStore()
+
+// 页面加载时检查记住我功能
+onMounted(() => {
+  if (localStorage.getItem('rememberMe') === 'true') {
+    rememberMe.value = true
+    const savedUsername = localStorage.getItem('username')
+    if (savedUsername) {
+      loginForm.username = savedUsername
+    }
+  }
+})
 const loginFormRef = ref(null)
 const registerFormRef = ref(null)
 const activeTab = ref('login')
@@ -256,15 +270,52 @@ const registerRules = {
 const handleLogin = async () => {
   if (!loginFormRef.value) return
   
-  await loginFormRef.value.validate((valid) => {
+  await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loginLoading.value = true
-      // 模拟登录
-      setTimeout(() => {
-        loginLoading.value = false
+      try {
+        console.log('开始登录...')
+        
+        // 调用登录API
+        const result = await userStore.login({
+          username: loginForm.username,
+          password: loginForm.password
+        })
+        
+        console.log('登录API返回:', result)
+        
+        // 检查登录是否真正成功
+        if (!userStore.isLoggedIn) {
+          throw new Error('登录状态验证失败')
+        }
+        
         ElMessage.success('登录成功')
-        router.push('/')
-      }, 1000)
+        
+        // 记住我功能
+        if (rememberMe.value) {
+          localStorage.setItem('rememberMe', 'true')
+          localStorage.setItem('username', loginForm.username)
+        } else {
+          localStorage.removeItem('rememberMe')
+          localStorage.removeItem('username')
+        }
+        
+        console.log('准备跳转到首页...')
+        
+        // 使用 nextTick 确保状态更新完成后再跳转
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // 跳转到首页
+        await router.push('/')
+        
+        console.log('跳转完成')
+        
+      } catch (error) {
+        console.error('登录失败:', error)
+        ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+      } finally {
+        loginLoading.value = false
+      }
     }
   })
 }
@@ -277,14 +328,27 @@ const handleRegister = async () => {
     return
   }
   
-  await registerFormRef.value.validate((valid) => {
+  await registerFormRef.value.validate(async (valid) => {
     if (valid) {
       registerLoading.value = true
-      // 模拟注册
-      setTimeout(() => {
-        registerLoading.value = false
+      try {
+        // 构造注册请求数据
+        const registerData = {
+          companyName: registerForm.companyName,
+          username: registerForm.username,
+          email: registerForm.email,
+          phone: registerForm.phone,
+          password: registerForm.password
+        }
+        
+        // 调用注册API
+        const result = await userApi.register(registerData)
+        
         ElMessage.success('注册成功，请登录')
+        
+        // 切换到登录标签页
         activeTab.value = 'login'
+        
         // 清空注册表单
         Object.assign(registerForm, {
           companyName: '',
@@ -295,7 +359,13 @@ const handleRegister = async () => {
           confirmPassword: ''
         })
         registerFormRef.value?.clearValidate()
-      }, 1500)
+        
+      } catch (error) {
+        console.error('注册失败:', error)
+        // 错误信息已经在 request.js 中统一处理了
+      } finally {
+        registerLoading.value = false
+      }
     }
   })
 }

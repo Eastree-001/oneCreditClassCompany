@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/layout/index.vue'
+import { useUserStore } from '@/stores/user'
 
 const routes = [
   {
@@ -17,37 +18,67 @@ const routes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
-        meta: { title: '数据看板', icon: 'DataBoard' }
+        meta: { title: '数据看板', icon: 'DataBoard', requiresAuth: true }
       },
       {
         path: 'skill-profile',
         name: 'SkillProfile',
         component: () => import('@/views/SkillProfile/index.vue'),
-        meta: { title: '岗位技能画像', icon: 'User' }
+        meta: { title: '岗位技能画像', icon: 'User', requiresAuth: true }
+      },
+      {
+        path: 'skill-profile/:id',
+        name: 'ProfileDetail',
+        component: () => import('@/views/ProfileDetail.vue'),
+        meta: { title: '岗位画像详情', icon: 'User', requiresAuth: true }
       },
       {
         path: 'course-match',
         name: 'CourseMatch',
         component: () => import('@/views/CourseMatch/index.vue'),
-        meta: { title: '课程匹配', icon: 'Connection' }
+        meta: { title: '课程匹配', icon: 'Connection', requiresAuth: true }
       },
       {
         path: 'talent-demand',
         name: 'TalentDemand',
         component: () => import('@/views/TalentDemand/index.vue'),
-        meta: { title: '人才需求发布', icon: 'Promotion' }
+        meta: { title: '人才需求发布', icon: 'Promotion', requiresAuth: true }
       },
       {
         path: 'cooperation',
         name: 'Cooperation',
         component: () => import('@/views/Cooperation/index.vue'),
-        meta: { title: '合作项目管理', icon: 'Document' }
+        meta: { title: '合作项目管理', icon: 'Document', requiresAuth: true }
       },
       {
         path: 'training',
         name: 'Training',
         component: () => import('@/views/Training/index.vue'),
-        meta: { title: '培训计划管理', icon: 'Calendar' }
+        meta: { title: '培训计划管理', icon: 'Calendar', requiresAuth: true }
+      },
+      {
+        path: 'token-test',
+        name: 'TokenTest',
+        component: () => import('@/views/TokenTest.vue'),
+        meta: { title: 'Token测试', icon: 'Tools', requiresAuth: true }
+      },
+      {
+        path: 'create-profile-test',
+        name: 'CreateProfileTest',
+        component: () => import('@/views/CreateProfileTest.vue'),
+        meta: { title: '创建岗位画像测试', icon: 'Tools', requiresAuth: true }
+      },
+      {
+        path: 'update-profile-test',
+        name: 'UpdateProfileTest',
+        component: () => import('@/views/UpdateProfileTest.vue'),
+        meta: { title: '更新岗位画像测试', icon: 'Tools', requiresAuth: true }
+      },
+      {
+        path: 'delete-profile-test',
+        name: 'DeleteProfileTest',
+        component: () => import('@/views/DeleteProfileTest.vue'),
+        meta: { title: '删除岗位画像测试', icon: 'Tools', requiresAuth: true }
       }
     ]
   }
@@ -56,6 +87,59 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 全局前置守卫
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore()
+  
+  console.log('路由守卫检查:', {
+    to: to.path,
+    isLoggedIn: userStore.isLoggedIn,
+    hasUserInfo: !!userStore.userInfo,
+    hasToken: !!userStore.token
+  })
+  
+  // 如果访问登录页
+  if (to.path === '/login') {
+    // 如果已经登录，重定向到首页
+    if (userStore.isLoggedIn) {
+      console.log('用户已登录，重定向到首页')
+      next('/')
+      return
+    }
+    next()
+    return
+  }
+  
+  // 检查是否需要认证
+  if (to.matched.some(record => record.meta.requiresAuth !== false)) {
+    // 如果没有token，重定向到登录页
+    if (!userStore.isLoggedIn) {
+      console.log('用户未登录，重定向到登录页')
+      next('/login')
+      return
+    }
+    
+    // 如果有token但没有用户信息，尝试获取用户信息
+    if (!userStore.userInfo) {
+      try {
+        console.log('获取用户信息...')
+        await userStore.fetchUserInfo()
+        console.log('用户信息获取成功')
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+        // 清除无效token
+        userStore.setToken(null)
+        userStore.setUserInfo(null)
+        next('/login')
+        return
+      }
+    }
+  }
+  
+  console.log('路由守卫通过，允许访问')
+  next()
 })
 
 export default router

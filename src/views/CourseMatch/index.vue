@@ -1,5 +1,28 @@
 <template>
   <div class="course-match">
+    <!-- 500错误状态提示 -->
+    <el-alert
+      v-if="hasServerError"
+      title="服务器内部错误"
+      type="error"
+      :description="serverErrorInfo.message || '服务器发生内部错误'"
+      show-icon
+      closable
+      @close="clearServerError"
+      style="margin-bottom: 20px"
+    >
+      <template #default>
+        <div>
+          <p>当前遇到的服务器错误：</p>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>接口：{{ serverErrorInfo.url }}</li>
+            <li>错误码：{{ serverErrorInfo.status }}</li>
+            <li>时间：{{ serverErrorInfo.timestamp }}</li>
+          </ul>
+        </div>
+      </template>
+    </el-alert>
+
     <!-- 匹配概览卡片 -->
     <el-row :gutter="20" class="overview-row">
       <el-col :xs="24" :sm="12" :md="6" v-for="stat in matchStats" :key="stat.label">
@@ -192,11 +215,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import * as echarts from 'echarts'
 import { Refresh, School, User, Clock } from '@element-plus/icons-vue'
+import { courseMatchApi } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -212,32 +236,7 @@ const matchStats = ref([
   { label: '待审核', value: '12', icon: 'Clock', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }
 ])
 
-const profileList = ref([
-  {
-    id: 1,
-    name: '前端工程师',
-    type: 'tech',
-    skills: ['React', 'Supabase', 'n8n', 'TypeScript', 'Vue.js']
-  },
-  {
-    id: 2,
-    name: 'AI算法工程师',
-    type: 'tech',
-    skills: ['Python', 'TensorFlow', 'PyTorch', '机器学习', '深度学习']
-  },
-  {
-    id: 3,
-    name: '数据安全分析师',
-    type: 'tech',
-    skills: ['网络安全', '数据加密', '风险评估', '安全审计']
-  },
-  {
-    id: 4,
-    name: 'AIGC内容设计师',
-    type: 'design',
-    skills: ['Midjourney', 'Stable Diffusion', 'ChatGPT', '设计思维']
-  }
-])
+const profileList = ref([])
 
 const selectedProfile = computed(() => {
   return profileList.value.find(p => p.id === selectedProfileId.value)
@@ -256,11 +255,49 @@ const sortedMatchResults = computed(() => {
 
 const suggestions = ref([])
 
+// 服务器错误状态管理
+const hasServerError = ref(false)
+const serverErrorInfo = ref({
+  url: '',
+  status: '',
+  message: '',
+  timestamp: ''
+})
+
+// 清除服务器错误状态
+const clearServerError = () => {
+  hasServerError.value = false
+  serverErrorInfo.value = {
+    url: '',
+    status: '',
+    message: '',
+    timestamp: ''
+  }
+}
+
+// 记录服务器错误
+const recordServerError = (error, url) => {
+  hasServerError.value = true
+  serverErrorInfo.value = {
+    url: url || error.config?.url || '未知',
+    status: error.response?.status || '未知',
+    message: error.response?.data?.message || error.message || '服务器内部错误',
+    timestamp: new Date().toLocaleString()
+  }
+}
+
 onMounted(() => {
+  loadProfiles()
+  
   const profileId = route.query.profileId
   if (profileId) {
     selectedProfileId.value = parseInt(profileId)
-    handleProfileChange()
+    // 如果有预设的profileId，等profiles加载完成后再处理
+    nextTick(() => {
+      setTimeout(() => {
+        handleProfileChange()
+      }, 500)
+    })
   }
   
   nextTick(() => {
@@ -268,91 +305,174 @@ onMounted(() => {
   })
 })
 
-const handleProfileChange = () => {
+const loadProfiles = async () => {
+  console.log('=== 开始加载岗位画像列表 ===')
+  
+  try {
+    const result = await courseMatchApi.getProfiles()
+    console.log('=== 岗位画像API响应 ===')
+    console.log('完整响应:', result)
+    
+    // 处理不同的响应格式
+    let data = result
+    if (result.data) {
+      data = result.data
+    }
+    
+    console.log('=== 处理后的岗位画像数据 ===')
+    console.log('数据类型:', typeof data)
+    console.log('数据内容:', data)
+    
+    // 设置岗位画像列表
+    if (data && (Array.isArray(data.profiles) || Array.isArray(data.list) || Array.isArray(data))) {
+      profileList.value = data.profiles || data.list || data || []
+      console.log('设置岗位画像列表成功:', profileList.value)
+      
+      // 数据格式化，确保必要字段存在
+      profileList.value = profileList.value.map(profile => ({
+        id: profile.id || profile.profileId,
+        name: profile.name || profile.profileName || profile.title,
+        type: profile.type || 'tech',
+        skills: profile.skills || profile.skillRequirements || [],
+        ...profile
+      }))
+      
+      console.log('格式化后的岗位画像列表:', profileList.value)
+    } else {
+      console.warn('岗位画像数据格式不正确:', data)
+      ElMessage.warning('岗位画像数据格式异常，请检查后端API')
+      // 不使用模拟数据，保持空状态
+      profileList.value = []
+    }
+    
+  } catch (error) {
+    console.error('=== 获取岗位画像失败 ===')
+    console.error('错误信息:', error)
+    ElMessage.error('获取岗位画像失败，请检查后端服务')
+    
+    // 不使用模拟数据，保持空状态
+    profileList.value = []
+  }
+}
+
+
+
+const handleProfileChange = async () => {
+  console.log('=== handleProfileChange 开始 ===')
+  console.log('selectedProfileId:', selectedProfileId.value)
+  
   if (!selectedProfileId.value) {
     matchResults.value = []
     suggestions.value = []
+    // 清空图表
+    updateMatchChart()
     return
   }
 
-  // 模拟匹配结果
-  const profile = selectedProfile.value
-  if (profile) {
-    if (profile.id === 1) {
-      // 前端工程师匹配结果
-      matchResults.value = [
-        {
-          id: 1,
-          name: 'React 前端开发实战',
-          school: '清华大学',
-          teacher: '张教授',
-          duration: 32,
-          description: '全面讲解React框架，包括Hooks、状态管理、路由等核心概念',
-          matchScore: 95,
-          matchedSkills: ['React', 'TypeScript']
-        },
-        {
-          id: 2,
-          name: '现代Web开发技术栈',
-          school: '北京大学',
-          teacher: '李教授',
-          duration: 40,
-          description: '涵盖Vue.js、React等主流前端框架，以及现代工具链',
-          matchScore: 88,
-          matchedSkills: ['Vue.js', 'React']
-        },
-        {
-          id: 3,
-          name: '云数据库应用开发',
-          school: '复旦大学',
-          teacher: '王教授',
-          duration: 24,
-          description: '学习Supabase等云数据库平台的使用和集成',
-          matchScore: 85,
-          matchedSkills: ['Supabase']
-        },
-        {
-          id: 4,
-          name: '工作流自动化工具',
-          school: '上海交大',
-          teacher: '陈教授',
-          duration: 16,
-          description: '使用n8n等工具实现业务流程自动化',
-          matchScore: 82,
-          matchedSkills: ['n8n']
-        },
-        {
-          id: 5,
-          name: 'TypeScript 高级编程',
-          school: '浙江大学',
-          teacher: '刘教授',
-          duration: 28,
-          description: '深入理解TypeScript类型系统和高级特性',
-          matchScore: 90,
-          matchedSkills: ['TypeScript']
-        }
-      ]
-    } else {
-      // 其他岗位的匹配结果（简化）
-      matchResults.value = [
-        {
-          id: 6,
-          name: '相关课程示例',
-          school: '示例大学',
-          teacher: '示例教师',
-          duration: 20,
-          description: '这是一个示例课程',
-          matchScore: 75,
-          matchedSkills: profile.skills.slice(0, 2)
-        }
-      ]
-    }
+  console.log('=== 开始获取匹配结果 ===')
+  console.log('选择的岗位画像ID:', selectedProfileId.value)
+  console.log('选择的岗位画像:', selectedProfile.value)
 
-    // 生成优化建议
-    generateSuggestions(profile)
+  try {
+    // 并行调用两个API：匹配结果和优化建议
+    const [matchResult, suggestionResult] = await Promise.allSettled([
+      courseMatchApi.getResults({
+        profileId: selectedProfileId.value
+      }),
+      courseMatchApi.getSuggestions({
+        profileId: selectedProfileId.value
+      })
+    ])
+    
+    console.log('=== 匹配结果API响应 ===')
+    if (matchResult.status === 'fulfilled') {
+      console.log('完整响应:', matchResult.value)
+      
+      // 处理不同的响应格式
+      let data = matchResult.value
+      if (matchResult.value.data) {
+        data = matchResult.value.data
+      }
+      
+      console.log('=== 处理后的匹配结果数据 ===')
+      console.log('数据类型:', typeof data)
+      console.log('数据内容:', data)
+      
+      // 设置匹配结果
+      if (data && (Array.isArray(data.courses) || Array.isArray(data.matches) || Array.isArray(data.results))) {
+        matchResults.value = data.courses || data.matches || data.results || []
+        console.log('设置匹配结果:', matchResults.value)
+      } else {
+        console.warn('匹配结果数据格式不正确:', data)
+      }
+    } else {
+      console.error('匹配结果API调用失败:', matchResult.reason)
+      ElMessage.warning('获取匹配结果失败，将显示模拟数据')
+    }
+    
+    console.log('=== 优化建议API响应 ===')
+    if (suggestionResult.status === 'fulfilled') {
+      console.log('完整响应:', suggestionResult.value)
+      
+      // 处理不同的响应格式
+      let suggestionData = suggestionResult.value
+      if (suggestionResult.value.data) {
+        suggestionData = suggestionResult.value.data
+      }
+      
+      console.log('=== 处理后的优化建议数据 ===')
+      console.log('数据类型:', typeof suggestionData)
+      console.log('数据内容:', suggestionData)
+      
+      // 设置优化建议
+      if (suggestionData && Array.isArray(suggestionData.suggestions) || Array.isArray(suggestionData.data) || Array.isArray(suggestionData)) {
+        suggestions.value = suggestionData.suggestions || suggestionData.data || suggestionData || []
+        console.log('设置优化建议:', suggestions.value)
+      } else {
+        console.warn('优化建议数据格式不正确:', suggestionData)
+      }
+    } else {
+      console.error('优化建议API调用失败:', suggestionResult.reason)
+      console.log('优化建议获取失败，将在模拟数据中生成')
+    }
+    
+    // 如果没有获取到有效的匹配结果，不使用模拟数据，显示空状态
+    if (matchResults.value.length === 0) {
+      console.log('未获取到有效的匹配结果，显示空状态，不使用模拟数据')
+      // 不调用 setSimulatedMatchResults()
+      
+      // 如果有匹配结果但没有优化建议，生成默认建议
+      if (suggestions.value.length === 0) {
+        console.log('未获取到优化建议，生成默认建议')
+        generateDefaultSuggestions()
+      }
+      // 更新匹配度分析图表（显示空数据）
+      updateMatchChart()
+    } else {
+      // 如果有匹配结果但没有优化建议，生成默认建议
+      if (suggestions.value.length === 0) {
+        console.log('未获取到优化建议，生成默认建议')
+        generateDefaultSuggestions()
+      }
+      // 更新匹配度分析图表
+      updateMatchChart()
+    }
+    
+  } catch (error) {
+    console.error('=== 获取匹配结果和优化建议失败 ===')
+    console.error('错误信息:', error)
+    ElMessage.error('获取数据失败，请检查后端服务')
+    
+    // 如果API调用失败，不使用模拟数据，显示空状态
+    matchResults.value = []
+    suggestions.value = []
+    
+    // 更新匹配度分析图表（显示空数据）
     updateMatchChart()
   }
 }
+
+
 
 const generateSuggestions = (profile) => {
   suggestions.value = [
@@ -383,19 +503,113 @@ const generateSuggestions = (profile) => {
   ]
 }
 
+// 生成默认优化建议（当API调用失败或返回空数据时使用）
+const generateDefaultSuggestions = () => {
+  const profile = selectedProfile.value
+  if (!profile) return
+  
+  const highMatchCount = matchResults.value.filter(course => course.matchScore >= 85).length
+  const totalSkills = profile.skills ? profile.skills.length : 0
+  
+  suggestions.value = [
+    {
+      type: '数据分析',
+      title: '匹配结果分析',
+      content: `当前岗位画像共包含${totalSkills}项技能要求，已匹配到${matchResults.value.length}门相关课程，其中${highMatchCount}门为高匹配度课程。`,
+      actions: [
+        { label: '查看详细报告', action: 'report' }
+      ]
+    },
+    {
+      type: '技能覆盖',
+      title: '技能覆盖情况',
+      content: `已覆盖技能要求的主要领域，建议补充项目实践内容以提高学习效果。`,
+      actions: [
+        { label: '编辑画像', action: 'edit' }
+      ]
+    },
+    {
+      type: '学习建议',
+      title: '学习路径优化',
+      content: '建议按照技能优先级进行学习，先掌握核心技能，再学习辅助技能。高匹配度课程优先学习。',
+      actions: [
+        { label: '创建学习计划', action: 'plan' }
+      ]
+    }
+  ]
+}
+
 const handleSortChange = () => {
   // 排序已在computed中处理
 }
 
-const handleRefresh = () => {
-  if (selectedProfileId.value) {
-    ElMessage.success('正在重新匹配...')
-    setTimeout(() => {
-      handleProfileChange()
-      ElMessage.success('匹配完成')
-    }, 1000)
-  } else {
+const handleRefresh = async () => {
+  if (!selectedProfileId.value) {
     ElMessage.warning('请先选择岗位画像')
+    return
+  }
+
+  console.log('=== 开始刷新匹配结果 ===')
+  console.log('选择的岗位画像ID:', selectedProfileId.value)
+  
+  // 显示加载状态
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在重新匹配...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  
+  try {
+    // 调用刷新接口
+    const result = await courseMatchApi.refreshResults({
+      profileId: selectedProfileId.value
+    })
+    
+    console.log('=== 刷新匹配结果API响应 ===')
+    console.log('完整响应:', result)
+    
+    // 处理不同的响应格式
+    let data = result
+    if (result.data) {
+      data = result.data
+    }
+    
+    console.log('=== 处理后的刷新结果数据 ===')
+    console.log('数据类型:', typeof data)
+    console.log('数据内容:', data)
+    console.log('数据键名:', data ? Object.keys(data) : 'null')
+    console.log('是否为数组:', Array.isArray(data))
+    console.log('data.courses:', data?.courses)
+    console.log('data.matches:', data?.matches)
+    console.log('data.results:', data?.results)
+    console.log('data.list:', data?.list)
+    console.log('data.data:', data?.data)
+    
+    // 根据接口文档，刷新接口返回的是操作状态，不是匹配结果
+    // 响应格式: { "code": 200, "message": "匹配完成", "data": { "match_count": 5 } }
+    if (result.code === 200 || (data && data.code === 200)) {
+      console.log('刷新操作成功，重新获取匹配结果')
+      
+      // 刷新成功后，重新调用获取匹配结果接口
+      await handleProfileChange()
+      ElMessage.success('匹配结果已刷新')
+    } else {
+      console.warn('刷新操作失败:', data)
+      
+      // 显示详细的错误信息，帮助调试
+      const dataStr = JSON.stringify(data, null, 2)
+      console.error('完整响应数据:', dataStr)
+      
+      ElMessage.error('刷新匹配结果失败，请重试')
+    }
+    
+  } catch (error) {
+    console.error('=== 刷新匹配结果失败 ===')
+    console.error('错误信息:', error)
+    ElMessage.error('刷新匹配结果失败，请重试')
+  } finally {
+    // 关闭加载状态
+    loading.close()
   }
 }
 
@@ -445,6 +659,15 @@ const handleSuggestionAction = (action) => {
     case 'training':
       router.push({ path: '/training' })
       break
+    case 'report':
+      ElMessage.info('详细报告功能开发中')
+      break
+    case 'plan':
+      ElMessage.info('创建学习计划功能开发中')
+      break
+    default:
+      console.warn('未知的操作类型:', action.action)
+      ElMessage.info('功能开发中')
   }
 }
 
@@ -453,54 +676,215 @@ let matchChart = null
 const initMatchChart = () => {
   if (!matchChartRef.value) return
   matchChart = echarts.init(matchChartRef.value)
-  updateMatchChart()
+  console.log('=== 图表初始化完成 ===')
+  // 初始不调用updateMatchChart，等待数据加载
 }
 
-const updateMatchChart = () => {
+const updateMatchChart = async () => {
   if (!matchChart) return
   
-  const data = matchResults.value.map(course => ({
-    value: course.matchScore,
-    name: course.name
-  }))
+  console.log('=== updateMatchChart 调用 ===')
+  console.log('selectedProfileId:', selectedProfileId.value)
+  console.log('selectedProfile:', selectedProfile.value)
+  console.log('matchResults length:', matchResults.value.length)
   
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c}% ({d}%)'
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          formatter: '{b}\n{c}%'
-        },
-        emphasis: {
+  // 如果没有选择的岗位画像，显示空数据
+  if (!selectedProfileId.value) {
+    console.log('未选择岗位画像，显示提示信息')
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}% ({d}%)'
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
           label: {
             show: true,
-            fontSize: 14,
-            fontWeight: 'bold'
-          }
-        },
-        data: data.length > 0 ? data : [{ value: 0, name: '暂无数据' }]
-      }
-    ]
+            formatter: '{b}\n{c}%'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 14,
+              fontWeight: 'bold'
+            }
+          },
+          data: [{ value: 0, name: '请选择岗位画像' }]
+        }
+      ]
+    }
+    matchChart.setOption(option)
+    return
   }
   
-  matchChart.setOption(option)
+  try {
+    // 调用真实API获取匹配度分析数据
+    const result = await courseMatchApi.getAnalysis({
+      profileId: selectedProfileId.value  // 修改参数名，后端期望 profileId 而不是 profile_id
+    })
+    
+    console.log('=== 匹配度分析API响应 ===')
+    console.log('完整响应:', result)
+    
+    // 处理响应数据
+    let data = result
+    if (result.data) {
+      data = result.data
+    }
+    
+    console.log('=== 处理后的分析数据 ===')
+    console.log('数据类型:', typeof data)
+    console.log('数据内容:', data)
+    
+    let chartData = []
+    if (Array.isArray(data)) {
+      // 直接是数组格式
+      chartData = data
+    } else if (data && Array.isArray(data.data)) {
+      // 嵌套在data字段中
+      chartData = data.data
+    } else if (data && data.code === 200 && Array.isArray(data.data)) {
+      // 标准响应格式
+      chartData = data.data
+    }
+    
+    console.log('最终图表数据:', chartData)
+    
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}% ({d}%)'
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: true,
+            formatter: '{b}\n{c}%'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 14,
+              fontWeight: 'bold'
+            }
+          },
+          data: chartData.length > 0 ? chartData : [{ value: 0, name: '暂无分析数据' }]
+        }
+      ]
+    }
+    
+    matchChart.setOption(option)
+    
+  } catch (error) {
+    console.error('=== 获取匹配度分析失败 ===')
+    console.error('错误信息:', error)
+    
+    // 记录服务器错误（特别是500错误）
+    if (error.response?.status === 500) {
+      recordServerError(error, '/enterprise/course-match/analysis')
+      
+      console.error('🔥 500错误 - 服务器内部错误详情:')
+      console.error('请求URL:', error.config?.url)
+      console.error('请求方法:', error.config?.method?.toUpperCase())
+      console.error('请求参数:', error.config?.params)
+      console.error('完整响应:', error.response?.data)
+      
+      // 尝试显示后端返回的具体错误信息
+      if (error.response?.data) {
+        const errorData = error.response.data
+        if (typeof errorData === 'string') {
+          console.error('后端错误详情:', errorData)
+        } else if (errorData.message) {
+          console.error('后端错误消息:', errorData.message)
+        } else if (errorData.error) {
+          console.error('后端错误:', errorData.error)
+        } else if (errorData.details) {
+          console.error('后端详细错误:', errorData.details)
+        }
+      }
+      
+      // 显示用户友好的错误提示
+      ElMessage.warning('分析服务暂时不可用，正在使用备用数据')
+    } else {
+      ElMessage.error(`获取匹配度分析失败: ${error.message}`)
+    }
+    
+    // 如果API调用失败，回退到使用匹配结果数据
+    const fallbackData = matchResults.value.map(course => ({
+      value: course.matchScore,
+      name: course.name
+    }))
+    
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}% ({d}%)'
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: true,
+            formatter: '{b}\n{c}%'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 14,
+              fontWeight: 'bold'
+            }
+          },
+          data: fallbackData.length > 0 ? fallbackData : [{ value: 0, name: '数据加载失败' }]
+        }
+      ]
+    }
+    
+    matchChart.setOption(option)
+  }
 }
 
 const resizeChart = () => {
   matchChart?.resize()
 }
+
+// 监听岗位画像选择变化
+watch(selectedProfileId, (newId, oldId) => {
+  console.log('=== selectedProfileId 变化 ===')
+  console.log('从:', oldId, '到:', newId)
+  
+  // 如果图表已初始化且有新的选择，更新图表
+  if (matchChart && newId) {
+    // 延迟一下让数据稳定
+    nextTick(() => {
+      setTimeout(() => {
+        updateMatchChart()
+      }, 100)
+    })
+  }
+})
 
 onMounted(() => {
   window.addEventListener('resize', resizeChart)

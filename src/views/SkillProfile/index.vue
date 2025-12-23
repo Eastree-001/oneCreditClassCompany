@@ -3,8 +3,31 @@
     <el-card shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>岗位技能画像管理</span>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增画像</el-button>
+          <div class="header-left">
+            <span>岗位技能画像管理</span>
+            <el-tag 
+              v-if="profileList.some(item => item._isDemo)" 
+              type="warning" 
+              size="small" 
+              style="margin-left: 10px"
+            >
+              演示数据
+            </el-tag>
+            <el-tag 
+              v-else-if="profileList.length > 0" 
+              type="success" 
+              size="small" 
+              style="margin-left: 10px"
+            >
+              真实数据
+            </el-tag>
+          </div>
+          <div class="header-right">
+            <el-button @click="handleRefresh" :loading="loading" style="margin-right: 10px">
+              刷新数据
+            </el-button>
+            <el-button type="primary" :icon="Plus" @click="handleAdd">新增画像</el-button>
+          </div>
         </div>
       </template>
 
@@ -60,8 +83,8 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button type="primary" link :icon="View" @click="viewDetail(row)">详情</el-button>
             <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="primary" link :icon="View" @click="handleView(row)">查看</el-button>
             <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -194,6 +217,8 @@ import {
   View,
   InfoFilled
 } from '@element-plus/icons-vue'
+import { skillProfileApi } from '@/api'
+import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -254,56 +279,140 @@ const formRules = {
   skills: [{ required: true, message: '请输入至少一个技能要求', trigger: 'change' }]
 }
 
-// 模拟数据
-const profileList = ref([
-  {
-    id: 1,
-    name: '前端工程师',
-    type: 'tech',
-    description: '负责公司前端产品开发，需要掌握现代前端技术栈',
-    skills: ['React', 'Supabase', 'n8n', 'TypeScript', 'Vue.js'],
-    experience: '1-3年',
-    education: 'bachelor',
-    createTime: '2024-01-10 10:30:00',
-    matchCount: 12
-  },
-  {
-    id: 2,
-    name: 'AI算法工程师',
-    type: 'tech',
-    description: '负责AI算法研发和优化',
-    skills: ['Python', 'TensorFlow', 'PyTorch', '机器学习', '深度学习'],
-    experience: '2-5年',
-    education: 'master',
-    createTime: '2024-01-08 14:20:00',
-    matchCount: 15
-  },
-  {
-    id: 3,
-    name: '数据安全分析师',
-    type: 'tech',
-    description: '负责数据安全分析和风险评估',
-    skills: ['网络安全', '数据加密', '风险评估', '安全审计'],
-    experience: '2-4年',
-    education: 'bachelor',
-    createTime: '2024-01-05 09:15:00',
-    matchCount: 8
-  },
-  {
-    id: 4,
-    name: 'AIGC内容设计师',
-    type: 'design',
-    description: '使用AI工具进行内容创作和设计',
-    skills: ['Midjourney', 'Stable Diffusion', 'ChatGPT', '设计思维'],
-    experience: '1-2年',
-    education: 'bachelor',
-    createTime: '2024-01-03 16:45:00',
-    matchCount: 10
+// 岗位画像列表数据
+const profileList = ref([])
+
+// 验证token并获取岗位画像列表
+const fetchProfiles = async () => {
+  console.log('=== 开始获取真实岗位画像列表 ===')
+  
+  try {
+    // 1. 验证token
+    const token = getValidToken()
+    console.log('Token验证结果:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    })
+    
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    // 2. 获取用户信息
+    const userInfo = getUserInfoFromToken(token)
+    console.log('用户信息:', userInfo)
+    
+    if (!userInfo) {
+      ElMessage.error('Token无效，请重新登录')
+      router.push('/login')
+      return
+    }
+    
+    // 3. 发起API请求获取真实岗位画像列表
+    console.log('🔄 开始获取真实岗位画像数据...')
+    loading.value = true
+    
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.size,
+      keyword: searchForm.keyword || undefined,
+      type: searchForm.type || undefined
+    }
+    
+    console.log('📤 请求参数:', params)
+    console.log('🌐 请求地址: /api/enterprise/skill-profiles')
+    
+    const response = await skillProfileApi.getEnterpriseList(params)
+    
+    console.log('📥 岗位画像API响应:', response)
+    
+    // 4. 处理真实响应数据
+    if (response && (response.data || response.code === 200)) {
+      let data = response.data || response
+      
+      // 尝试多种可能的数据结构
+      let profiles = []
+      let total = 0
+      
+      if (Array.isArray(data)) {
+        // 直接是数组格式
+        profiles = data
+        total = data.length
+      } else if (typeof data === 'object') {
+        // 对象格式，包含list、records、profiles等字段
+        profiles = data.list || data.records || data.data || data.profiles || []
+        total = data.total || data.count || profiles.length
+      }
+      
+      profileList.value = profiles
+      pagination.total = total
+      
+      console.log('✅ 真实数据处理完成:', {
+        listLength: profileList.value.length,
+        total: pagination.total,
+        dataSource: 'real_api'
+      })
+      
+      // 显示成功消息
+      ElMessage.success(`成功获取 ${profiles.length} 条岗位技能画像数据`)
+      
+      // 如果没有数据，提示用户
+      if (profiles.length === 0) {
+        ElMessage.info('暂无岗位技能画像数据，请先创建')
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('获取数据成功，但数据格式需要调整，请检查后端API')
+      profileList.value = []
+      pagination.total = 0
+    }
+    
+  } catch (error) {
+    console.error('❌ 获取真实岗位画像列表失败:', error)
+    
+    // 详细的错误处理
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限访问岗位技能画像数据')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('岗位技能画像API接口不存在 (404)，请联系管理员')
+      // 404错误时不使用模拟数据，显示真实错误
+      console.log('🚫 API接口404，不使用模拟数据，等待后端部署')
+      profileList.value = []
+      pagination.total = 0
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+      // 500错误时不使用模拟数据，显示真实错误信息
+      console.log('🚫 服务器500错误，不使用模拟数据，等待后端修复')
+      profileList.value = []
+      pagination.total = 0
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+      console.log('🚫 网络错误，不使用模拟数据，等待网络恢复')
+      profileList.value = []
+      pagination.total = 0
+    } else {
+      ElMessage.error(`获取岗位技能画像失败: ${error.message || '未知错误'}`)
+      console.log('🚫 API调用失败，不使用模拟数据，显示真实错误')
+      profileList.value = []
+      pagination.total = 0
+    }
+  } finally {
+    loading.value = false
   }
-])
+}
+
+
 
 onMounted(() => {
-  pagination.total = profileList.value.length
+  console.log('组件挂载，开始获取岗位画像数据')
+  fetchProfiles()
 })
 
 const getTypeTag = (type) => {
@@ -357,59 +466,219 @@ const handleEdit = (row) => {
 }
 
 const handleView = (row) => {
-  Object.assign(viewData, row)
-  viewDialogVisible.value = true
+  // 跳转到详情页面而不是弹窗
+  viewDetail(row)
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该岗位画像吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const index = profileList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      profileList.value.splice(index, 1)
-      pagination.total--
-      ElMessage.success('删除成功')
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该岗位画像吗？删除后不可恢复。', '删除确认', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    console.log('=== 开始删除岗位画像 ===')
+    console.log('删除目标:', row)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
     }
-  }).catch(() => {})
+    
+    console.log('🗑️ 删除岗位画像，调用真实API')
+    console.log('📤 删除岗位画像ID:', row.id)
+    console.log('🌐 请求地址: /api/enterprise/skill-profiles/{id}')
+    
+    // 调用真实删除API
+    const response = await skillProfileApi.deleteEnterprise(row.id)
+    
+    console.log('📥 删除岗位画像API响应:', response)
+    
+    // 处理删除响应
+    if (response && (response.data || response.code === 200 || response.success)) {
+      console.log('✅ 岗位画像删除成功')
+      ElMessage.success('岗位画像删除成功')
+      
+      // 从本地列表中移除
+      const index = profileList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        profileList.value.splice(index, 1)
+        pagination.total--
+      }
+      
+    } else {
+      console.warn('⚠️ API响应数据格式异常:', response)
+      ElMessage.warning('删除成功，但响应格式需要调整，请检查后端API')
+      // 即使响应格式异常，如果删除操作成功，也要移除本地数据
+      const index = profileList.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        profileList.value.splice(index, 1)
+        pagination.total--
+      }
+    }
+    
+  } catch (error) {
+    if (error === 'cancel') {
+      // 用户取消删除
+      console.log('🚫 用户取消删除操作')
+      return
+    }
+    
+    console.error('❌ 删除岗位画像失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限删除岗位技能画像')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('删除岗位画像API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`删除岗位画像失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 删除失败时不移除本地数据
+  }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      submitLoading.value = true
-      setTimeout(() => {
-        if (isEdit.value) {
-          const index = profileList.value.findIndex(item => item.id === formData.id)
-          if (index > -1) {
-            Object.assign(profileList.value[index], {
-              ...formData,
-              skills: [...formData.skills],
-              createTime: profileList.value[index].createTime
-            })
-            ElMessage.success('更新成功')
-          }
-        } else {
-          profileList.value.unshift({
-            id: Date.now(),
-            ...formData,
-            skills: [...formData.skills],
-            createTime: new Date().toLocaleString('zh-CN'),
-            matchCount: 0
+  try {
+    const valid = await formRef.value.validate()
+    if (!valid) return
+    
+    console.log('=== 开始提交岗位画像 ===')
+    console.log('编辑模式:', isEdit.value)
+    console.log('表单数据:', formData)
+    
+    // 验证token
+    const token = getValidToken()
+    if (!token) {
+      ElMessage.error('请先登录获取访问权限')
+      router.push('/login')
+      return
+    }
+    
+    submitLoading.value = true
+    
+    if (isEdit.value) {
+      // 编辑模式 - 调用真实API
+      console.log('📝 编辑岗位画像，调用真实API')
+      
+      const requestData = {
+        name: formData.name,
+        type: formData.type,
+        description: formData.description,
+        skills: formData.skills,
+        experience: formData.experience,
+        education: formData.education
+      }
+      
+      console.log('📤 更新请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/skill-profiles/{id}')
+      
+      const response = await skillProfileApi.updateEnterprise(formData.id, requestData)
+      
+      console.log('📥 更新岗位画像API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200)) {
+        console.log('✅ 岗位画像更新成功')
+        ElMessage.success('岗位画像更新成功')
+        
+        // 更新本地列表数据
+        const index = profileList.value.findIndex(item => item.id === formData.id)
+        if (index > -1) {
+          Object.assign(profileList.value[index], {
+            ...requestData,
+            createTime: profileList.value[index].createTime
           })
-          pagination.total++
-          ElMessage.success('创建成功')
         }
-        submitLoading.value = false
+        
+        // 关闭对话框并重置表单
         dialogVisible.value = false
         resetForm()
-      }, 500)
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('更新成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+      }
+    } else {
+      // 新增模式 - 调用真实API
+      console.log('➕ 创建新岗位画像，调用真实API')
+      
+      const requestData = {
+        name: formData.name,
+        type: formData.type,
+        description: formData.description,
+        skills: formData.skills,
+        experience: formData.experience,
+        education: formData.education
+      }
+      
+      console.log('📤 请求数据:', requestData)
+      console.log('🌐 请求地址: /api/enterprise/skill-profiles')
+      
+      const response = await skillProfileApi.createEnterprise(requestData)
+      
+      console.log('📥 创建岗位画像API响应:', response)
+      
+      // 处理真实响应
+      if (response && (response.data || response.code === 200 || response.id)) {
+        console.log('✅ 岗位画像创建成功')
+        ElMessage.success('岗位画像创建成功')
+        
+        // 关闭对话框并重置表单
+        dialogVisible.value = false
+        resetForm()
+        
+        // 刷新列表数据
+        await fetchProfiles()
+        
+      } else {
+        console.warn('⚠️ API响应数据格式异常:', response)
+        ElMessage.warning('创建成功，但响应格式需要调整，请检查后端API')
+        dialogVisible.value = false
+        resetForm()
+        await fetchProfiles()
+      }
     }
-  })
+    
+  } catch (error) {
+    console.error('❌ 提交岗位画像失败:', error)
+    
+    if (error.response?.status === 401) {
+      ElMessage.error('登录已过期，请重新登录获取访问权限')
+      router.push('/login')
+    } else if (error.response?.status === 403) {
+      ElMessage.error('没有权限创建岗位技能画像')
+    } else if (error.response?.status === 404) {
+      ElMessage.error('创建岗位画像API接口不存在 (404)，请联系管理员')
+    } else if (error.response?.status === 500) {
+      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
+      console.error('🔥 500错误详情:', error.response?.data)
+    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
+    } else {
+      ElMessage.error(`创建岗位画像失败: ${error.message || '未知错误'}`)
+    }
+    
+    // 不使用本地模拟创建，显示真实错误
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 const handleDialogClose = () => {
@@ -429,8 +698,10 @@ const resetForm = () => {
   formRef.value?.clearValidate()
 }
 
-const handleSearch = () => {
-  ElMessage.info('搜索功能开发中')
+const handleSearch = async () => {
+  console.log('执行搜索操作:', searchForm)
+  pagination.page = 1 // 重置到第一页
+  await fetchProfiles()
 }
 
 const handleReset = () => {
@@ -438,21 +709,46 @@ const handleReset = () => {
   searchForm.type = ''
 }
 
-const handleSizeChange = (size) => {
+const handleSizeChange = async (size) => {
   pagination.size = size
+  pagination.page = 1
+  await fetchProfiles()
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = async (page) => {
   pagination.page = page
+  await fetchProfiles()
 }
 
 const viewMatch = (row) => {
   router.push({ path: '/course-match', query: { profileId: row.id } })
 }
 
+const viewDetail = (row) => {
+  router.push({ name: 'ProfileDetail', params: { id: row.id } })
+}
+
 const goToMatch = (row) => {
   viewDialogVisible.value = false
   router.push({ path: '/course-match', query: { profileId: row.id } })
+}
+
+// 刷新数据（强制获取真实数据）
+const handleRefresh = async () => {
+  console.log('🔄 手动刷新岗位技能画像数据')
+  
+  // 清除可能存在的演示数据标识
+  profileList.value = []
+  pagination.total = 0
+  
+  // 重新获取数据
+  await fetchProfiles()
+  
+  if (profileList.value.some(item => item._isDemo)) {
+    ElMessage.warning('刷新后仍显示演示数据，请检查后端API连接')
+  } else {
+    ElMessage.success('数据刷新成功')
+  }
 }
 </script>
 
@@ -464,6 +760,16 @@ const goToMatch = (row) => {
     align-items: center;
     font-weight: 600;
     font-size: 16px;
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
   }
   
   .search-form {

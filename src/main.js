@@ -9,6 +9,13 @@ import App from './App.vue'
 import router from './router'
 import './styles/main.scss'
 
+// 开发环境下验证API配置
+if (import.meta.env.DEV) {
+  import('./config/validation.js').then(({ validateApiConfig }) => {
+    validateApiConfig()
+  })
+}
+
 const app = createApp(App)
 const pinia = createPinia()
 

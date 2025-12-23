@@ -41,8 +41,11 @@
         <div class="header-right">
           <el-dropdown @command="handleCommand">
             <div class="user-info">
-              <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-              <span class="username">企业管理员</span>
+              <el-avatar 
+                :size="32" 
+                :src="userStore.avatar" 
+              />
+              <span class="username">{{ userStore.loading ? '加载中...' : userStore.username }}</span>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
@@ -69,12 +72,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Fold, Expand, ArrowDown } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const isCollapse = ref(false)
 
 const menuList = [
@@ -83,7 +89,8 @@ const menuList = [
   { path: '/course-match', title: '课程匹配', icon: 'Connection' },
   { path: '/talent-demand', title: '人才需求发布', icon: 'Promotion' },
   { path: '/cooperation', title: '合作项目管理', icon: 'Document' },
-  { path: '/training', title: '培训计划管理', icon: 'Calendar' }
+  { path: '/training', title: '培训计划管理', icon: 'Calendar' },
+  { path: '/token-test', title: 'Token测试', icon: 'Tools' }
 ]
 
 const activeMenu = computed(() => route.path)
@@ -96,11 +103,35 @@ const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
 
-const handleCommand = (command) => {
+const handleCommand = async (command) => {
   if (command === 'logout') {
+    await userStore.logout()
+    ElMessage.success('退出登录成功')
     router.push('/login')
   }
 }
+
+// 页面加载时初始化用户状态
+onMounted(async () => {
+  console.log('Layout组件加载，初始化用户状态...')
+  await userStore.initUserState()
+  console.log('Layout组件用户状态:', {
+    loading: userStore.loading,
+    username: userStore.username,
+    userInfo: userStore.userInfo,
+    isLoggedIn: userStore.isLoggedIn
+  })
+})
+
+// 监听用户信息变化
+watch(
+  () => userStore.userInfo,
+  (newUserInfo) => {
+    console.log('用户信息发生变化:', newUserInfo)
+    console.log('当前用户名:', userStore.username)
+  },
+  { immediate: true }
+)
 </script>
 
 <style lang="scss" scoped>
