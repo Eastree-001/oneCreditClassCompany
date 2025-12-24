@@ -6,14 +6,7 @@
           <div class="header-left">
             <el-button :icon="ArrowLeft" @click="goBack">返回列表</el-button>
             <span style="margin-left: 15px">人才需求详情</span>
-            <el-tag 
-              v-if="demandDetail && !demandDetail._isDemo" 
-              type="success" 
-              size="small" 
-              style="margin-left: 10px"
-            >
-              真实数据
-            </el-tag>
+
           </div>
           <div class="header-right">
             <el-button 

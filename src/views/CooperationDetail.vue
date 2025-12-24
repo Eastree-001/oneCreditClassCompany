@@ -6,14 +6,7 @@
           <div class="header-left">
             <el-button :icon="ArrowLeft" @click="goBack">返回列表</el-button>
             <span style="margin-left: 15px">合作项目详情</span>
-            <el-tag 
-              v-if="projectDetail && !projectDetail._isDemo" 
-              type="success" 
-              size="small" 
-              style="margin-left: 10px"
-            >
-              真实数据
-            </el-tag>
+
           </div>
           <div class="header-right">
             <el-button 
@@ -31,22 +24,6 @@
               @click="handleEdit"
             >
               编辑
-            </el-button>
-            <el-button 
-              v-if="projectDetail && projectDetail.status === 'ongoing'"
-              type="warning" 
-              :icon="VideoPause" 
-              @click="handlePause"
-            >
-              暂停项目
-            </el-button>
-            <el-button 
-              v-if="projectDetail && projectDetail.status === 'paused'"
-              type="success" 
-              :icon="VideoPlay" 
-              @click="handleResume"
-            >
-              恢复项目
             </el-button>
             <el-button 
               type="danger" 
@@ -386,8 +363,6 @@ import {
   DataAnalysis,
   Clock,
   Edit,
-  VideoPause,
-  VideoPlay,
   Delete,
   TrendCharts
 } from '@element-plus/icons-vue'
@@ -653,143 +628,9 @@ const handleEditSubmit = async () => {
   }
 }
 
-// 暂停项目
-const handlePause = async () => {
-  if (!projectDetail.value) return
-  
-  try {
-    await ElMessageBox.confirm('确定要暂停该项目吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    console.log('=== 开始暂停合作项目 ===')
-    
-    // 验证token
-    const token = getValidToken()
-    if (!token) {
-      ElMessage.error('请先登录获取访问权限')
-      router.push('/login')
-      return
-    }
-    
-    const requestData = { status: 'paused' }
-    console.log('📤 暂停项目请求数据:', requestData)
-    console.log('🌐 请求地址: /api/enterprise/cooperation-projects/{id}')
-    
-    const response = await cooperationApi.updateEnterprise(projectDetail.value.id, requestData)
-    
-    console.log('📥 暂停合作项目API响应:', response)
-    
-    // 处理暂停响应
-    if (response && (response.data || response.code === 200)) {
-      console.log('✅ 合作项目暂停成功')
-      ElMessage.success('合作项目已暂停')
-      
-      // 更新本地状态
-      projectDetail.value.status = 'paused'
-      
-    } else {
-      console.warn('⚠️ API响应数据格式异常:', response)
-      ElMessage.warning('暂停成功，但响应格式需要调整，请检查后端API')
-      // 即使响应格式异常，也认为暂停成功
-      projectDetail.value.status = 'paused'
-    }
-    
-  } catch (error) {
-    if (error === 'cancel') {
-      console.log('🚫 用户取消暂停操作')
-      return
-    }
-    
-    console.error('❌ 暂停合作项目失败:', error)
-    
-    if (error.response?.status === 401) {
-      ElMessage.error('登录已过期，请重新登录获取访问权限')
-      router.push('/login')
-    } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限暂停合作项目')
-    } else if (error.response?.status === 404) {
-      ElMessage.error('合作项目API接口不存在 (404)，请联系管理员')
-    } else if (error.response?.status === 500) {
-      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
-    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-      ElMessage.error('网络连接失败，请检查网络连接')
-    } else {
-      ElMessage.error(`暂停合作项目失败: ${error.message || '未知错误'}`)
-    }
-  }
-}
 
-// 恢复项目
-const handleResume = async () => {
-  if (!projectDetail.value) return
-  
-  try {
-    await ElMessageBox.confirm('确定要恢复该项目吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    console.log('=== 开始恢复合作项目 ===')
-    
-    // 验证token
-    const token = getValidToken()
-    if (!token) {
-      ElMessage.error('请先登录获取访问权限')
-      router.push('/login')
-      return
-    }
-    
-    const requestData = { status: 'ongoing' }
-    console.log('📤 恢复项目请求数据:', requestData)
-    console.log('🌐 请求地址: /api/enterprise/cooperation-projects/{id}')
-    
-    const response = await cooperationApi.updateEnterprise(projectDetail.value.id, requestData)
-    
-    console.log('📥 恢复合作项目API响应:', response)
-    
-    // 处理恢复响应
-    if (response && (response.data || response.code === 200)) {
-      console.log('✅ 合作项目恢复成功')
-      ElMessage.success('合作项目已恢复')
-      
-      // 更新本地状态
-      projectDetail.value.status = 'ongoing'
-      
-    } else {
-      console.warn('⚠️ API响应数据格式异常:', response)
-      ElMessage.warning('恢复成功，但响应格式需要调整，请检查后端API')
-      // 即使响应格式异常，也认为恢复成功
-      projectDetail.value.status = 'ongoing'
-    }
-    
-  } catch (error) {
-    if (error === 'cancel') {
-      console.log('🚫 用户取消恢复操作')
-      return
-    }
-    
-    console.error('❌ 恢复合作项目失败:', error)
-    
-    if (error.response?.status === 401) {
-      ElMessage.error('登录已过期，请重新登录获取访问权限')
-      router.push('/login')
-    } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限恢复合作项目')
-    } else if (error.response?.status === 404) {
-      ElMessage.error('合作项目API接口不存在 (404)，请联系管理员')
-    } else if (error.response?.status === 500) {
-      ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
-    } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-      ElMessage.error('网络连接失败，请检查网络连接')
-    } else {
-      ElMessage.error(`恢复合作项目失败: ${error.message || '未知错误'}`)
-    }
-  }
-}
+
+
 
 // 删除项目
 const handleDelete = async () => {

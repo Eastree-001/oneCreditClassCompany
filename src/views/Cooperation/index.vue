@@ -31,7 +31,6 @@
           <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 150px">
             <el-option label="进行中" value="ongoing" />
             <el-option label="已完成" value="completed" />
-            <el-option label="已暂停" value="paused" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -540,8 +539,7 @@ const getTypeName = (type) => {
 const getStatusTag = (status) => {
   const map = {
     ongoing: 'success',
-    completed: 'info',
-    paused: 'warning'
+    completed: 'info'
   }
   return map[status] || 'info'
 }
@@ -549,8 +547,7 @@ const getStatusTag = (status) => {
 const getStatusName = (status) => {
   const map = {
     ongoing: '进行中',
-    completed: '已完成',
-    paused: '已暂停'
+    completed: '已完成'
   }
   return map[status] || status
 }

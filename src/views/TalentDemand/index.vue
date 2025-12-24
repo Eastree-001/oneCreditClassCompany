@@ -13,14 +13,7 @@
             >
               演示数据
             </el-tag>
-            <el-tag 
-              v-else-if="demandList.length > 0" 
-              type="success" 
-              size="small" 
-              style="margin-left: 10px"
-            >
-              真实数据
-            </el-tag>
+
           </div>
           <div class="header-right">
             <el-button @click="handleRefresh" :loading="loading" style="margin-right: 10px">

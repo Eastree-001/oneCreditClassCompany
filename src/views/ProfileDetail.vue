@@ -5,14 +5,7 @@
         <div class="card-header">
           <div class="header-left">
             <span>岗位画像详情</span>
-            <el-tag 
-              v-if="profileDetail && !profileDetail._isDemo" 
-              type="success" 
-              size="small" 
-              style="margin-left: 10px"
-            >
-              真实数据
-            </el-tag>
+
           </div>
           <div class="header-right">
             <el-button @click="handleRefresh" :loading="loading">
