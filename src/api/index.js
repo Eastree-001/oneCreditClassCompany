@@ -13,6 +13,21 @@ export const userApi = {
     return request.post(API_ENDPOINTS.USER.REGISTER, data)
   },
   
+  // 发送验证码
+  sendVerification: (data) => {
+    return request.post(API_ENDPOINTS.USER.SEND_VERIFICATION, data)
+  },
+  
+  // 发送重置密码验证码
+  sendResetCode: (data) => {
+    return request.post(API_ENDPOINTS.USER.SEND_RESET_CODE, data)
+  },
+  
+  // 重置密码
+  resetPassword: (data) => {
+    return request.post(API_ENDPOINTS.USER.RESET_PASSWORD, data)
+  },
+  
   // 用户登出
   logout: () => {
     return request.post(API_ENDPOINTS.USER.LOGOUT)
