@@ -255,6 +255,71 @@ const sortedMatchResults = computed(() => {
 
 const suggestions = ref([])
 
+// 加载课程匹配统计数据（页面初始化时调用）
+const loadMatchStats = async () => {
+  console.log('=== 开始获取课程匹配统计数据 ===')
+  
+  try {
+    const result = await courseMatchApi.getStats()
+    console.log('=== 课程匹配统计API响应 ===')
+    console.log('完整响应:', result)
+    
+    // 处理响应数据
+    let data = result
+    if (result.data) {
+      data = result.data
+    }
+    
+    console.log('=== 处理后的统计数据 ===')
+    console.log('数据内容:', data)
+    
+    // 更新统计信息
+    if (data && data.stats) {
+      updateMatchStats(data.stats)
+      console.log('统计数据更新成功')
+    } else {
+      console.warn('统计数据格式不正确:', data)
+    }
+    
+  } catch (error) {
+    console.error('=== 获取课程匹配统计数据失败 ===')
+    console.error('错误信息:', error)
+    ElMessage.error('获取统计数据失败，请检查后端服务')
+  }
+}
+
+// 更新匹配统计信息
+const updateMatchStats = (stats) => {
+  if (!stats) return
+  
+  matchStats.value = [
+    { 
+      label: '总匹配数', 
+      value: stats.total.toString(), 
+      icon: 'Connection', 
+      color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+    },
+    { 
+      label: '高匹配度', 
+      value: stats.highMatch.toString(), 
+      icon: 'CircleCheck', 
+      color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' 
+    },
+    { 
+      label: '中等匹配', 
+      value: stats.mediumMatch.toString(), 
+      icon: 'DocumentAdd', 
+      color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+    },
+    { 
+      label: '低匹配度', 
+      value: stats.lowMatch.toString(), 
+      icon: 'Clock', 
+      color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' 
+    }
+  ]
+}
+
 // 服务器错误状态管理
 const hasServerError = ref(false)
 const serverErrorInfo = ref({
@@ -288,6 +353,7 @@ const recordServerError = (error, url) => {
 
 onMounted(() => {
   loadProfiles()
+  loadMatchStats()
   
   const profileId = route.query.profileId
   if (profileId) {
@@ -398,16 +464,39 @@ const handleProfileChange = async () => {
       console.log('数据类型:', typeof data)
       console.log('数据内容:', data)
       
-      // 设置匹配结果
-      if (data && (Array.isArray(data.courses) || Array.isArray(data.matches) || Array.isArray(data.results))) {
+      // 根据提供的API格式处理响应数据
+      if (data && data.matches && Array.isArray(data.matches)) {
+        // 处理API返回的匹配结果格式
+        matchResults.value = data.matches.map(match => ({
+          id: match.id,
+          courseId: match.courseId,
+          name: match.courseName,
+          school: match.school,
+          teacher: match.teacher,
+          duration: match.duration,
+          description: match.description,
+          matchScore: match.matchScore,
+          matchedSkills: match.matchedSkills || []
+        }))
+        
+        // 如果匹配结果中包含统计数据，也更新统计面板
+        if (data.stats) {
+          updateMatchStats(data.stats)
+        }
+        
+        console.log('设置匹配结果成功:', matchResults.value)
+      } else if (data && (Array.isArray(data.courses) || Array.isArray(data.matches) || Array.isArray(data.results))) {
+        // 兼容其他可能的格式
         matchResults.value = data.courses || data.matches || data.results || []
-        console.log('设置匹配结果:', matchResults.value)
+        console.log('设置匹配结果（兼容格式）:', matchResults.value)
       } else {
         console.warn('匹配结果数据格式不正确:', data)
+        matchResults.value = []
       }
     } else {
       console.error('匹配结果API调用失败:', matchResult.reason)
-      ElMessage.warning('获取匹配结果失败，将显示模拟数据')
+      ElMessage.warning('获取匹配结果失败')
+      matchResults.value = []
     }
     
     console.log('=== 优化建议API响应 ===')

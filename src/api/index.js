@@ -570,6 +570,17 @@ export const courseMatchApi = {
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.SUGGESTIONS, { params })
     console.log('优化建议API调用已发送，等待响应...')
     return result
+  },
+  
+  // 获取课程匹配统计数据
+  getStats: (params) => {
+    console.log('=== 调用getStats API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.STATS)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.COURSE_MATCH.STATS, { params })
+    console.log('课程匹配统计API调用已发送，等待响应...')
+    return result
   }
 }
 

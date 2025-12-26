@@ -101,7 +101,8 @@ export const API_ENDPOINTS = {
     RESULTS: '/enterprise/course-match/results',
     REFRESH: '/enterprise/course-match/refresh',
     ANALYSIS: '/enterprise/course-match/analysis',
-    SUGGESTIONS: '/enterprise/course-match/suggestions'
+    SUGGESTIONS: '/enterprise/course-match/suggestions',
+    STATS: '/enterprise/course-match/stats'
   }
 }
 
