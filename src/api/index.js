@@ -13,6 +13,21 @@ export const userApi = {
     return request.post(API_ENDPOINTS.USER.REGISTER, data)
   },
   
+  // 发送验证码
+  sendVerification: (data) => {
+    return request.post(API_ENDPOINTS.USER.SEND_VERIFICATION, data)
+  },
+  
+  // 发送重置密码验证码
+  sendResetCode: (data) => {
+    return request.post(API_ENDPOINTS.USER.SEND_RESET_CODE, data)
+  },
+  
+  // 重置密码
+  resetPassword: (data) => {
+    return request.post(API_ENDPOINTS.USER.RESET_PASSWORD, data)
+  },
+  
   // 用户登出
   logout: () => {
     return request.post(API_ENDPOINTS.USER.LOGOUT)
@@ -554,6 +569,17 @@ export const courseMatchApi = {
     
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.SUGGESTIONS, { params })
     console.log('优化建议API调用已发送，等待响应...')
+    return result
+  },
+  
+  // 获取课程匹配统计数据
+  getStats: (params) => {
+    console.log('=== 调用getStats API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.STATS)
+    console.log('参数:', params)
+    
+    const result = request.get(API_ENDPOINTS.COURSE_MATCH.STATS, { params })
+    console.log('课程匹配统计API调用已发送，等待响应...')
     return result
   }
 }

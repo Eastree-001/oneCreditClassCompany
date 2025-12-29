@@ -12,7 +12,10 @@ export const API_ENDPOINTS = {
     LOGIN: '/enterprise/auth/login',
     REGISTER: '/enterprise/auth/register',
     LOGOUT: '/enterprise/auth/logout',
-    ME: '/enterprise/auth/me'
+    ME: '/enterprise/auth/me',
+    SEND_VERIFICATION: '/enterprise/auth/send-verification',
+    SEND_RESET_CODE: '/enterprise/auth/send-reset-code',
+    RESET_PASSWORD: '/enterprise/auth/reset-password-with-code'
   },
   
   // 统计数据相关
@@ -98,7 +101,8 @@ export const API_ENDPOINTS = {
     RESULTS: '/enterprise/course-match/results',
     REFRESH: '/enterprise/course-match/refresh',
     ANALYSIS: '/enterprise/course-match/analysis',
-    SUGGESTIONS: '/enterprise/course-match/suggestions'
+    SUGGESTIONS: '/enterprise/course-match/suggestions',
+    STATS: '/enterprise/course-match/stats'
   }
 }
 
