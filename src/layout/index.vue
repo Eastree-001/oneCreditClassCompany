@@ -43,9 +43,9 @@
             <div class="user-info">
               <el-avatar 
                 :size="32" 
-                :src="userStore.avatar" 
+                :src="currentUserStore.avatar" 
               />
-              <span class="username">{{ userStore.loading ? '加载中...' : userStore.username }}</span>
+              <span class="username">{{ currentUserStore.loading ? '加载中...' : currentUserStore.username }}</span>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
@@ -77,13 +77,22 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Fold, Expand, ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useUserStoreUniversity } from '@/stores/user-university'
+import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
 const router = useRouter()
+const appStore = useAppStore()
 const userStore = useUserStore()
+const userStoreUniversity = useUserStoreUniversity()
 const isCollapse = ref(false)
 
-const menuList = [
+// 根据当前模式选择对应的store
+const currentUserStore = computed(() => {
+  return appStore.isEnterprise ? userStore : userStoreUniversity
+})
+
+const enterpriseMenuList = [
   { path: '/dashboard', title: '数据看板', icon: 'DataBoard' },
   { path: '/skill-profile', title: '岗位技能画像', icon: 'User' },
   { path: '/course-match', title: '课程匹配', icon: 'Connection' },
@@ -92,9 +101,21 @@ const menuList = [
   { path: '/training', title: '培训计划管理', icon: 'Calendar' }
 ]
 
+const universityMenuList = [
+  { path: '/dashboard-university', title: '数据看板', icon: 'DataBoard' },
+  { path: '/course-slice', title: '课程切片与技能映射', icon: 'Document' },
+  { path: '/proposal-approval', title: '共建课程/专业提案审批', icon: 'EditPen' },
+  { path: '/teaching-feedback', title: '数据化教学反馈面板', icon: 'DataAnalysis' },
+  { path: '/cooperation-university', title: '校企合作管理', icon: 'Connection' }
+]
+
+const menuList = computed(() => {
+  return appStore.isEnterprise ? enterpriseMenuList : universityMenuList
+})
+
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => {
-  const menu = menuList.find(item => item.path === route.path)
+  const menu = menuList.value.find(item => item.path === route.path)
   return menu ? menu.title : ''
 })
 
@@ -104,7 +125,7 @@ const toggleCollapse = () => {
 
 const handleCommand = async (command) => {
   if (command === 'logout') {
-    await userStore.logout()
+    await currentUserStore.value.logout()
     ElMessage.success('退出登录成功')
     router.push('/login')
   }
@@ -113,21 +134,26 @@ const handleCommand = async (command) => {
 // 页面加载时初始化用户状态
 onMounted(async () => {
   console.log('Layout组件加载，初始化用户状态...')
-  await userStore.initUserState()
+  if (appStore.isEnterprise) {
+    await userStore.initUserState()
+  } else {
+    await userStoreUniversity.initUserState()
+  }
   console.log('Layout组件用户状态:', {
-    loading: userStore.loading,
-    username: userStore.username,
-    userInfo: userStore.userInfo,
-    isLoggedIn: userStore.isLoggedIn
+    mode: appStore.currentMode,
+    loading: currentUserStore.value.loading,
+    username: currentUserStore.value.username,
+    userInfo: currentUserStore.value.userInfo,
+    isLoggedIn: currentUserStore.value.isLoggedIn
   })
 })
 
 // 监听用户信息变化
 watch(
-  () => userStore.userInfo,
+  () => currentUserStore.value.userInfo,
   (newUserInfo) => {
     console.log('用户信息发生变化:', newUserInfo)
-    console.log('当前用户名:', userStore.username)
+    console.log('当前用户名:', currentUserStore.value.username)
   },
   { immediate: true }
 )

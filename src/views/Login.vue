@@ -16,21 +16,37 @@
               <el-icon :size="48"><School /></el-icon>
             </div>
             <h1 class="system-name">一学分课堂</h1>
-            <p class="system-desc">企业端管理平台</p>
+            <p class="system-desc">{{ appStore.isEnterprise ? '企业端管理平台' : '高校端管理平台' }}</p>
           </div>
           <div class="feature-list">
-            <div class="feature-item">
-              <el-icon :size="24"><Connection /></el-icon>
-              <span>智能课程匹配</span>
-            </div>
-            <div class="feature-item">
-              <el-icon :size="24"><User /></el-icon>
-              <span>岗位画像管理</span>
-            </div>
-            <div class="feature-item">
-              <el-icon :size="24"><Document /></el-icon>
-              <span>人才培养计划</span>
-            </div>
+            <template v-if="appStore.isEnterprise">
+              <div class="feature-item">
+                <el-icon :size="24"><Connection /></el-icon>
+                <span>智能课程匹配</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><User /></el-icon>
+                <span>岗位画像管理</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><Document /></el-icon>
+                <span>人才培养计划</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="feature-item">
+                <el-icon :size="24"><Document /></el-icon>
+                <span>课程切片管理</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><EditPen /></el-icon>
+                <span>提案审批</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><DataAnalysis /></el-icon>
+                <span>教学反馈分析</span>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -39,8 +55,26 @@
       <div class="login-form-wrapper">
         <div class="login-box">
           <div class="login-header">
+            <div class="mode-switch-container">
+              <el-button-group>
+                <el-button 
+                  :type="appStore.isEnterprise ? 'primary' : 'default'"
+                  @click="switchToEnterprise"
+                  size="small"
+                >
+                  企业端
+                </el-button>
+                <el-button 
+                  :type="appStore.isUniversity ? 'primary' : 'default'"
+                  @click="switchToUniversity"
+                  size="small"
+                >
+                  高校端
+                </el-button>
+              </el-button-group>
+            </div>
             <h2 class="login-title">欢迎回来</h2>
-            <p class="login-subtitle">请登录您的企业账号</p>
+            <p class="login-subtitle">{{ appStore.isEnterprise ? '请登录您的企业账号' : '请登录您的高校账号' }}</p>
           </div>
 
           <el-tabs v-model="activeTab" class="login-tabs">
@@ -92,17 +126,17 @@
               </el-form>
             </el-tab-pane>
 
-            <el-tab-pane label="企业注册" name="register">
+            <el-tab-pane :label="appStore.isEnterprise ? '企业注册' : '高校注册'" name="register">
               <el-form
                 ref="registerFormRef"
                 :model="registerForm"
                 :rules="registerRules"
                 class="register-form"
               >
-                <el-form-item prop="companyName">
+                <el-form-item :prop="appStore.isEnterprise ? 'companyName' : 'universityName'">
                   <el-input
                     v-model="registerForm.companyName"
-                    placeholder="请输入企业名称"
+                    :placeholder="appStore.isEnterprise ? '请输入企业名称' : '请输入高校名称'"
                     size="large"
                     prefix-icon="OfficeBuilding"
                     clearable
@@ -120,7 +154,7 @@
                 <el-form-item prop="email">
                   <el-input
                     v-model="registerForm.email"
-                    placeholder="请输入企业邮箱"
+                    :placeholder="appStore.isEnterprise ? '请输入企业邮箱' : '请输入高校邮箱'"
                     size="large"
                     prefix-icon="Message"
                     clearable
@@ -299,17 +333,25 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { userApi } from '@/api'
+import { userApiUniversity } from '@/api/university'
 import { useUserStore } from '@/stores/user'
-import { School, Connection, User, Document, OfficeBuilding, Message, Phone, Lock, Key } from '@element-plus/icons-vue'
+import { useUserStoreUniversity } from '@/stores/user-university'
+import { useAppStore } from '@/stores/app'
+import { School, Connection, User, Document, OfficeBuilding, Message, Phone, Lock, EditPen, DataAnalysis } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const appStore = useAppStore()
 const userStore = useUserStore()
+const userStoreUniversity = useUserStoreUniversity()
 
 // 页面加载时检查记住我功能
 onMounted(() => {
-  if (localStorage.getItem('rememberMe') === 'true') {
+  const rememberKey = appStore.isEnterprise ? 'rememberMe' : 'rememberMe_university'
+  const usernameKey = appStore.isEnterprise ? 'username' : 'username_university'
+  
+  if (localStorage.getItem(rememberKey) === 'true') {
     rememberMe.value = true
-    const savedUsername = localStorage.getItem('username')
+    const savedUsername = localStorage.getItem(usernameKey)
     if (savedUsername) {
       loginForm.username = savedUsername
     }
@@ -512,7 +554,9 @@ const loginRules = {
 }
 
 const registerRules = {
-  companyName: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
+  companyName: [{ required: true, message: (rule, value, callback) => {
+    return appStore.isEnterprise ? '请输入企业名称' : '请输入高校名称'
+  }, trigger: 'blur' }],
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, max: 20, message: '用户名长度为3-20个字符', trigger: 'blur' }
@@ -573,38 +617,51 @@ const handleLogin = async () => {
     if (valid) {
       loginLoading.value = true
       try {
-        console.log('开始登录...')
+        console.log('开始登录...', appStore.currentMode)
         
-        // 调用登录API
-        const result = await userStore.login({
-          username: loginForm.username,
-          password: loginForm.password
-        })
+        let result
+        if (appStore.isEnterprise) {
+          // 企业端登录
+          result = await userStore.login({
+            username: loginForm.username,
+            password: loginForm.password
+          })
+          
+          if (!userStore.isLoggedIn) {
+            throw new Error('登录状态验证失败')
+          }
+        } else {
+          // 高校端登录
+          result = await userStoreUniversity.login({
+            username: loginForm.username,
+            password: loginForm.password
+          })
+          
+          if (!userStoreUniversity.isLoggedIn) {
+            throw new Error('登录状态验证失败')
+          }
+        }
         
         console.log('登录API返回:', result)
-        
-        // 检查登录是否真正成功
-        if (!userStore.isLoggedIn) {
-          throw new Error('登录状态验证失败')
-        }
         
         ElMessage.success('登录成功')
         
         // 记住我功能
+        const rememberKey = appStore.isEnterprise ? 'rememberMe' : 'rememberMe_university'
+        const usernameKey = appStore.isEnterprise ? 'username' : 'username_university'
+        
         if (rememberMe.value) {
-          localStorage.setItem('rememberMe', 'true')
-          localStorage.setItem('username', loginForm.username)
+          localStorage.setItem(rememberKey, 'true')
+          localStorage.setItem(usernameKey, loginForm.username)
         } else {
-          localStorage.removeItem('rememberMe')
-          localStorage.removeItem('username')
+          localStorage.removeItem(rememberKey)
+          localStorage.removeItem(usernameKey)
         }
         
         console.log('准备跳转到首页...')
         
-        // 使用 nextTick 确保状态更新完成后再跳转
         await new Promise(resolve => setTimeout(resolve, 100))
         
-        // 跳转到首页
         await router.push('/')
         
         console.log('跳转完成')
@@ -632,13 +689,18 @@ const handleRegister = async () => {
       registerLoading.value = true
       try {
         // 构造注册请求数据
-        const registerData = {
+        const registerData = appStore.isEnterprise ? {
           companyName: registerForm.companyName,
           username: registerForm.username,
           email: registerForm.email,
           phone: registerForm.phone,
-          password: registerForm.password,
-          emailVerificationCode: registerForm.verificationCode
+          password: registerForm.password
+        } : {
+          universityName: registerForm.companyName,
+          username: registerForm.username,
+          email: registerForm.email,
+          phone: registerForm.phone,
+          password: registerForm.password
         }
         
         console.log('发送注册请求:', {
@@ -650,7 +712,9 @@ const handleRegister = async () => {
         })
         
         // 调用注册API
-        const result = await userApi.register(registerData)
+        const result = appStore.isEnterprise 
+          ? await userApi.register(registerData)
+          : await userApiUniversity.register(registerData)
         
         ElMessage.success('注册成功，请登录')
         
@@ -671,12 +735,37 @@ const handleRegister = async () => {
         
       } catch (error) {
         console.error('注册失败:', error)
-        // 错误信息已经在 request.js 中统一处理了
       } finally {
         registerLoading.value = false
       }
     }
   })
+}
+
+const switchToEnterprise = () => {
+  appStore.switchToEnterprise()
+  // 清空表单
+  loginForm.username = ''
+  loginForm.password = ''
+  registerForm.companyName = ''
+  registerForm.username = ''
+  registerForm.email = ''
+  registerForm.phone = ''
+  registerForm.password = ''
+  registerForm.confirmPassword = ''
+}
+
+const switchToUniversity = () => {
+  appStore.switchToUniversity()
+  // 清空表单
+  loginForm.username = ''
+  loginForm.password = ''
+  registerForm.companyName = ''
+  registerForm.username = ''
+  registerForm.email = ''
+  registerForm.phone = ''
+  registerForm.password = ''
+  registerForm.confirmPassword = ''
 }
 </script>
 
@@ -820,6 +909,12 @@ const handleRegister = async () => {
       .login-header {
         text-align: center;
         margin-bottom: 30px;
+        
+        .mode-switch-container {
+          margin-bottom: 20px;
+          display: flex;
+          justify-content: center;
+        }
         
         .login-title {
           font-size: 28px;
