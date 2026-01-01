@@ -116,6 +116,13 @@ const routes = [
         name: 'ProfileDetail',
         component: () => import('@/views/ProfileDetail.vue'),
         meta: { title: '岗位画像详情', icon: 'User', requiresAuth: true, mode: 'enterprise' }
+      },
+      // 个人中心（企业端和高校端通用）
+      {
+        path: 'personal-center',
+        name: 'PersonalCenter',
+        component: () => import('@/views/PersonalCenter.vue'),
+        meta: { title: '个人中心', icon: 'User', requiresAuth: true }
       }
     ]
   }

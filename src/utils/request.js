@@ -16,20 +16,26 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
+    // 根据请求URL判断是高校端还是企业端
+    const isUniversityRequest = config.url && config.url.includes('/university/')
+    const mode = isUniversityRequest ? 'university' : 'enterprise'
+
     // 获取有效的token，自动过滤过期token
-    const token = getValidToken()
-    
+    const token = getValidToken(mode)
+
     // 添加调试信息
     console.log(`发送请求: ${config.method?.toUpperCase()} ${config.url}`, {
+      mode: mode,
+      isUniversity: isUniversityRequest,
       hasToken: !!token,
       token: token ? `${token.substring(0, 20)}...` : '无',
       headers: config.headers
     })
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
+
     return config
   },
   (error) => {
@@ -79,14 +85,20 @@ request.interceptors.response.use(
   (error) => {
     // 对响应错误做点什么
     let message = '网络错误'
-    
+
     if (error.response) {
+      // 判断是高校端还是企业端的请求
+      const isUniversityRequest = error.config.url && error.config.url.includes('/university/')
+      const tokenKey = isUniversityRequest ? 'token_university' : 'token'
+      const userInfoKey = isUniversityRequest ? 'userInfo_university' : 'userInfo'
+
       switch (error.response.status) {
         case 401:
           message = '登录已过期，请重新登录'
           // 清除本地存储的用户信息和token
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          localStorage.removeItem(tokenKey)
+          localStorage.removeItem(userInfoKey)
+          console.log('清除token:', { tokenKey, userInfoKey })
           // 跳转到登录页
           if (window.location.pathname !== '/login') {
             window.location.href = '/login'

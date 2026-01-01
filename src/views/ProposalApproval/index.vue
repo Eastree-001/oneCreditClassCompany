@@ -38,14 +38,14 @@
         <el-table-column prop="title" label="提案标题" width="250" />
         <el-table-column prop="type" label="提案类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.type === '共建课程' ? 'primary' : 'success'">{{ row.type }}</el-tag>
+            <el-tag :type="row.type === 'course' ? 'primary' : 'success'">{{ getTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="proposer" label="提案人" width="120" />
         <el-table-column prop="proposalTime" label="提案时间" width="180" />
         <el-table-column prop="status" label="审批状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="approver" label="审批人" width="120" />
@@ -54,7 +54,7 @@
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleView(row)">查看详情</el-button>
             <el-button
-              v-if="row.status === '待审批'"
+              v-if="row.status === 'pending'"
               type="success"
               link
               size="small"
@@ -85,18 +85,19 @@
       v-model="detailDialogVisible"
       title="提案详情"
       width="900px"
+      v-loading="detailLoading"
     >
       <el-descriptions :column="2" border v-if="currentProposal">
         <el-descriptions-item label="提案标题">{{ currentProposal.title }}</el-descriptions-item>
         <el-descriptions-item label="提案类型">
-          <el-tag :type="currentProposal.type === '共建课程' ? 'primary' : 'success'">
-            {{ currentProposal.type }}
+          <el-tag :type="currentProposal.type === 'course' ? 'primary' : 'success'">
+            {{ getTypeText(currentProposal.type) }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="提案人">{{ currentProposal.proposer }}</el-descriptions-item>
         <el-descriptions-item label="提案时间">{{ currentProposal.proposalTime }}</el-descriptions-item>
         <el-descriptions-item label="审批状态">
-          <el-tag :type="getStatusType(currentProposal.status)">{{ currentProposal.status }}</el-tag>
+          <el-tag :type="getStatusType(currentProposal.status)">{{ getStatusText(currentProposal.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="审批人">{{ currentProposal.approver || '-' }}</el-descriptions-item>
         <el-descriptions-item label="审批时间">{{ currentProposal.approvalTime || '-' }}</el-descriptions-item>
@@ -152,14 +153,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import { proposalApi } from '@/api/university'
 
 const searchKeyword = ref('')
 const filterStatus = ref('')
 const filterType = ref('')
 const loading = ref(false)
+const detailLoading = ref(false)
 const detailDialogVisible = ref(false)
 const approvalDialogVisible = ref(false)
 const approvalFormRef = ref(null)
@@ -170,46 +173,46 @@ const pagination = ref({
   total: 0
 })
 
-const proposalList = ref([
-  {
-    id: 1,
-    title: '人工智能专业共建提案',
-    type: '专业共建',
-    proposer: '张教授',
-    proposalTime: '2024-01-10 14:30:00',
-    status: '待审批',
-    approver: '',
-    approvalTime: '',
-    content: '为适应人工智能产业发展需求，建议与企业合作共建人工智能专业，培养符合行业需求的高素质人才...',
-    attachments: [
-      { name: '提案文档.pdf', url: '#' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Java企业级开发共建课程',
-    type: '共建课程',
-    proposer: '李老师',
-    proposalTime: '2024-01-08 10:20:00',
-    status: '已通过',
-    approver: '王主任',
-    approvalTime: '2024-01-12 16:45:00',
-    content: '与企业合作开发Java企业级开发课程，引入真实项目案例...',
-    attachments: []
-  },
-  {
-    id: 3,
-    title: '大数据分析专业共建',
-    type: '专业共建',
-    proposer: '刘教授',
-    proposalTime: '2024-01-05 09:15:00',
-    status: '已拒绝',
-    approver: '王主任',
-    approvalTime: '2024-01-07 11:30:00',
-    content: '建议与企业合作共建大数据分析专业...',
-    attachments: []
+const proposalList = ref([])
+
+// 加载提案列表
+const loadProposalList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: pagination.value.page,
+      size: pagination.value.size
+    }
+
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    if (filterType.value) {
+      params.type = filterType.value
+    }
+
+    const result = await proposalApi.getList(params)
+    console.log('提案列表:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    proposalList.value = data.list || []
+    pagination.value.total = data.total || 0
+  } catch (error) {
+    console.error('加载提案列表失败:', error)
+    ElMessage.error('加载提案列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadProposalList()
+})
 
 const currentProposal = ref(null)
 
@@ -225,6 +228,9 @@ const approvalRules = {
 
 const getStatusType = (status) => {
   const typeMap = {
+    'pending': 'warning',
+    'approved': 'success',
+    'rejected': 'danger',
     '待审批': 'warning',
     '已通过': 'success',
     '已拒绝': 'danger'
@@ -232,14 +238,44 @@ const getStatusType = (status) => {
   return typeMap[status] || ''
 }
 
-const handleSearch = () => {
-  // 搜索逻辑
-  ElMessage.info('搜索功能待实现')
+const getStatusText = (status) => {
+  const textMap = {
+    'pending': '待审批',
+    'approved': '已通过',
+    'rejected': '已拒绝'
+  }
+  return textMap[status] || status
 }
 
-const handleView = (row) => {
-  currentProposal.value = row
+const getTypeText = (type) => {
+  const typeMap = {
+    'course': '共建课程',
+    'major': '专业共建'
+  }
+  return typeMap[type] || type
+}
+
+const handleSearch = () => {
+  pagination.value.page = 1
+  loadProposalList()
+}
+
+const handleView = async (row) => {
+  detailLoading.value = true
   detailDialogVisible.value = true
+  try {
+    const result = await proposalApi.getDetail(row.id)
+    console.log('提案详情:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    currentProposal.value = data
+  } catch (error) {
+    console.error('加载提案详情失败:', error)
+    ElMessage.error('加载提案详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const handleApprove = (row) => {
@@ -254,25 +290,35 @@ const handleApprove = (row) => {
 const handleSubmitApproval = async () => {
   try {
     await approvalFormRef.value.validate()
+
+    // 调用审批API
+    const approveData = {
+      status: approvalForm.value.result,
+      comment: approvalForm.value.comment
+    }
+
+    await proposalApi.approve(currentProposal.value.id, approveData)
+    console.log('提案审批成功')
+
     ElMessage.success('审批成功')
     approvalDialogVisible.value = false
-    // 更新列表数据
-    if (currentProposal.value) {
-      currentProposal.value.status = approvalForm.value.result === 'approved' ? '已通过' : '已拒绝'
-      currentProposal.value.approver = '当前用户'
-      currentProposal.value.approvalTime = new Date().toLocaleString('zh-CN')
-    }
+
+    // 重新加载列表
+    loadProposalList()
   } catch (error) {
-    // 验证失败，不处理
+    console.error('审批失败:', error)
+    ElMessage.error(error.message || '审批失败')
   }
 }
 
 const handleSizeChange = (size) => {
   pagination.value.size = size
+  loadProposalList()
 }
 
 const handlePageChange = (page) => {
   pagination.value.page = page
+  loadProposalList()
 }
 </script>
 

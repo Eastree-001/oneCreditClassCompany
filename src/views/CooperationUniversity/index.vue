@@ -62,7 +62,7 @@
         <el-table-column prop="enterpriseName" label="企业名称" width="200" />
         <el-table-column prop="type" label="合作类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)">{{ row.type }}</el-tag>
+            <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="projectName" label="合作项目" width="200" />
@@ -70,7 +70,7 @@
         <el-table-column prop="endTime" label="结束时间" width="180" />
         <el-table-column prop="status" label="合作状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="getStatusTag(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="studentCount" label="参与学生数" width="120" align="center" />
@@ -159,15 +159,16 @@
       v-model="detailDialogVisible"
       title="合作详情"
       width="900px"
+      v-loading="detailLoading"
     >
       <el-descriptions :column="2" border v-if="currentCooperation">
         <el-descriptions-item label="企业名称">{{ currentCooperation.enterpriseName }}</el-descriptions-item>
         <el-descriptions-item label="合作类型">
-          <el-tag :type="getTypeTag(currentCooperation.type)">{{ currentCooperation.type }}</el-tag>
+          <el-tag :type="getTypeTag(currentCooperation.type)">{{ getTypeText(currentCooperation.type) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="合作项目">{{ currentCooperation.projectName }}</el-descriptions-item>
         <el-descriptions-item label="合作状态">
-          <el-tag :type="getStatusTag(currentCooperation.status)">{{ currentCooperation.status }}</el-tag>
+          <el-tag :type="getStatusTag(currentCooperation.status)">{{ getStatusText(currentCooperation.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="开始时间">{{ currentCooperation.startTime }}</el-descriptions-item>
         <el-descriptions-item label="结束时间">{{ currentCooperation.endTime }}</el-descriptions-item>
@@ -183,9 +184,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
+import { cooperationApiUniversity } from '@/api/university'
 
 const searchKeyword = ref('')
 const filterStatus = ref('')
@@ -193,6 +195,7 @@ const filterType = ref('')
 const loading = ref(false)
 const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
+const detailLoading = ref(false)
 const dialogTitle = ref('新建合作')
 const formRef = ref(null)
 
@@ -202,47 +205,7 @@ const pagination = ref({
   total: 0
 })
 
-const cooperationList = ref([
-  {
-    id: 1,
-    enterpriseName: 'XX科技有限公司',
-    type: '项目实训',
-    projectName: 'Java企业级开发实训',
-    startTime: '2024-01-01',
-    endTime: '2024-06-30',
-    status: '进行中',
-    studentCount: 45,
-    contact: '张经理',
-    phone: '13800138000',
-    description: '与企业合作开展Java企业级开发实训项目，学生参与真实项目开发...'
-  },
-  {
-    id: 2,
-    enterpriseName: 'YY互联网公司',
-    type: '课程共建',
-    projectName: '前端开发课程共建',
-    startTime: '2023-09-01',
-    endTime: '2024-01-31',
-    status: '已完成',
-    studentCount: 60,
-    contact: '李总监',
-    phone: '13900139000',
-    description: '与企业合作共建前端开发课程，引入企业真实案例...'
-  },
-  {
-    id: 3,
-    enterpriseName: 'ZZ数据公司',
-    type: '人才培养',
-    projectName: '大数据分析人才培养',
-    startTime: '2024-02-01',
-    endTime: '2024-12-31',
-    status: '进行中',
-    studentCount: 30,
-    contact: '王经理',
-    phone: '13700137000',
-    description: '与企业合作培养大数据分析人才，提供实习机会...'
-  }
-])
+const cooperationList = ref([])
 
 const currentCooperation = ref(null)
 
@@ -277,22 +240,79 @@ const getTypeTag = (type) => {
   const typeMap = {
     '项目实训': 'primary',
     '课程共建': 'success',
-    '人才培养': 'warning'
+    '人才培养': 'warning',
+    'project': 'primary',
+    'course': 'success',
+    'talent': 'warning'
   }
   return typeMap[type] || ''
+}
+
+const getTypeText = (type) => {
+  const typeMap = {
+    'project': '项目实训',
+    'course': '课程共建',
+    'talent': '人才培养'
+  }
+  return typeMap[type] || type
 }
 
 const getStatusTag = (status) => {
   const typeMap = {
     '进行中': 'primary',
     '已完成': 'success',
-    '已终止': 'danger'
+    '已终止': 'danger',
+    'ongoing': 'primary',
+    'completed': 'success',
+    'terminated': 'danger'
   }
   return typeMap[status] || ''
 }
 
+const getStatusText = (status) => {
+  const statusMap = {
+    'ongoing': '进行中',
+    'completed': '已完成',
+    'terminated': '已终止'
+  }
+  return statusMap[status] || status
+}
+
+const loadCooperationList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: pagination.value.page,
+      size: pagination.value.size
+    }
+
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    if (filterType.value) {
+      params.type = filterType.value
+    }
+
+    const result = await cooperationApiUniversity.getList(params)
+    console.log('校企合作列表:', result)
+
+    const data = result.data?.data || result.data || result
+    cooperationList.value = data.list || []
+    pagination.value.total = data.total || 0
+  } catch (error) {
+    console.error('加载校企合作列表失败:', error)
+    ElMessage.error('加载校企合作列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleSearch = () => {
-  ElMessage.info('搜索功能待实现')
+  pagination.value.page = 1
+  loadCooperationList()
 }
 
 const handleAdd = () => {
@@ -311,9 +331,21 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleView = (row) => {
-  currentCooperation.value = row
+const handleView = async (row) => {
+  detailLoading.value = true
   detailDialogVisible.value = true
+  try {
+    const result = await cooperationApiUniversity.getDetail(row.id)
+    console.log('校企合作详情:', result)
+
+    const data = result.data?.data || result.data || result
+    currentCooperation.value = data
+  } catch (error) {
+    console.error('加载校企合作详情失败:', error)
+    ElMessage.error('加载校企合作详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const handleEdit = (row) => {
@@ -357,11 +389,17 @@ const handleDialogClose = () => {
 
 const handleSizeChange = (size) => {
   pagination.value.size = size
+  loadCooperationList()
 }
 
 const handlePageChange = (page) => {
   pagination.value.page = page
+  loadCooperationList()
 }
+
+onMounted(() => {
+  loadCooperationList()
+})
 </script>
 
 <style lang="scss" scoped>

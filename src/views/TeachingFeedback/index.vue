@@ -110,7 +110,7 @@
         <el-table-column prop="studentName" label="学生姓名" width="120" />
         <el-table-column prop="type" label="反馈类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)">{{ row.type }}</el-tag>
+            <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="score" label="评分" width="100" align="center">
@@ -146,12 +146,13 @@
       v-model="detailDialogVisible"
       title="反馈详情"
       width="700px"
+      v-loading="detailLoading"
     >
       <el-descriptions :column="1" border v-if="currentFeedback">
         <el-descriptions-item label="课程名称">{{ currentFeedback.courseName }}</el-descriptions-item>
         <el-descriptions-item label="学生姓名">{{ currentFeedback.studentName }}</el-descriptions-item>
         <el-descriptions-item label="反馈类型">
-          <el-tag :type="getTypeTag(currentFeedback.type)">{{ currentFeedback.type }}</el-tag>
+          <el-tag :type="getTypeTag(currentFeedback.type)">{{ getTypeText(currentFeedback.type) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="评分">
           <el-rate v-model="currentFeedback.score" disabled show-score />
@@ -170,12 +171,13 @@ import { ref, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis, ChatLineRound, Document, User } from '@element-plus/icons-vue'
+import { teachingFeedbackApi } from '@/api/university'
 
 const stats = ref([
-  { title: '总反馈数', value: '342', icon: 'DataAnalysis', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { title: '平均评分', value: '4.6', icon: 'ChatLineRound', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { title: '课程评价', value: '256', icon: 'Document', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
-  { title: '参与学生', value: '128', icon: 'User', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }
+  { title: '总反馈数', value: '0', icon: 'DataAnalysis', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { title: '平均评分', value: '0', icon: 'ChatLineRound', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { title: '课程评价', value: '0', icon: 'Document', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+  { title: '参与学生', value: '0', icon: 'User', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }
 ])
 
 const filterCourse = ref('')
@@ -183,11 +185,18 @@ const dateRange = ref('')
 const filterType = ref('')
 const loading = ref(false)
 const detailDialogVisible = ref(false)
+const detailLoading = ref(false)
 
 const scoreTrendChartRef = ref(null)
 const typeChartRef = ref(null)
 const satisfactionChartRef = ref(null)
 const wordCloudChartRef = ref(null)
+
+// 保存图表实例
+let scoreTrendChart = null
+let typeChart = null
+let satisfactionChart = null
+let wordCloudChart = null
 
 const pagination = ref({
   page: 1,
@@ -195,40 +204,50 @@ const pagination = ref({
   total: 0
 })
 
-const feedbackList = ref([
-  {
-    id: 1,
-    courseName: 'Java程序设计',
-    studentName: '张三',
-    type: '课程评价',
-    score: 5,
-    content: '课程内容很丰富，老师讲解清晰，实践项目很有帮助。',
-    feedbackTime: '2024-01-15 10:30:00'
-  },
-  {
-    id: 2,
-    courseName: 'Python数据分析',
-    studentName: '李四',
-    type: '教学建议',
-    score: 4,
-    content: '建议增加更多实际案例，让学习更有针对性。',
-    feedbackTime: '2024-01-14 15:20:00'
-  },
-  {
-    id: 3,
-    courseName: 'Vue.js前端开发',
-    studentName: '王五',
-    type: '问题反馈',
-    score: 4,
-    content: '课程视频有些地方不够清晰，希望能优化一下。',
-    feedbackTime: '2024-01-13 09:15:00'
-  }
-])
+const feedbackList = ref([])
 
 const currentFeedback = ref(null)
 
+// 加载教学反馈列表
+const loadFeedbackList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: pagination.value.page,
+      size: pagination.value.size
+    }
+
+    if (filterCourse.value) {
+      params.course = filterCourse.value
+    }
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+    if (filterType.value) {
+      params.type = filterType.value
+    }
+
+    const result = await teachingFeedbackApi.getList(params)
+    console.log('教学反馈列表:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    feedbackList.value = data.list || []
+    pagination.value.total = data.total || 0
+  } catch (error) {
+    console.error('加载教学反馈列表失败:', error)
+    ElMessage.error('加载教学反馈列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const getTypeTag = (type) => {
   const typeMap = {
+    'course': 'primary',
+    'suggestion': 'success',
+    'issue': 'warning',
     '课程评价': 'primary',
     '教学建议': 'success',
     '问题反馈': 'warning'
@@ -236,44 +255,159 @@ const getTypeTag = (type) => {
   return typeMap[type] || ''
 }
 
+const getTypeText = (type) => {
+  const typeMap = {
+    'course': '课程评价',
+    'suggestion': '教学建议',
+    'issue': '问题反馈'
+  }
+  return typeMap[type] || type
+}
+
 const handleFilter = () => {
-  ElMessage.info('筛选功能待实现')
+  pagination.value.page = 1
+  loadFeedbackList()
+  loadStats()
+  loadChartData()
 }
 
 const handleReset = () => {
   filterCourse.value = ''
   dateRange.value = ''
   filterType.value = ''
+  pagination.value.page = 1
+  loadFeedbackList()
+  loadStats()
+  loadChartData()
 }
 
-const handleView = (row) => {
-  currentFeedback.value = row
+const handleView = async (row) => {
+  detailLoading.value = true
   detailDialogVisible.value = true
+  try {
+    const result = await teachingFeedbackApi.getDetail(row.id)
+    console.log('教学反馈详情:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    currentFeedback.value = data
+  } catch (error) {
+    console.error('加载教学反馈详情失败:', error)
+    ElMessage.error('加载教学反馈详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const handleSizeChange = (size) => {
   pagination.value.size = size
+  loadFeedbackList()
 }
 
 const handlePageChange = (page) => {
   pagination.value.page = page
+  loadFeedbackList()
+}
+
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    const params = {}
+    if (filterCourse.value) {
+      params.course_id = filterCourse.value
+    }
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.start_date = dateRange.value[0]
+      params.end_date = dateRange.value[1]
+    }
+
+    const result = await teachingFeedbackApi.getStats(params)
+    console.log('教学反馈统计:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    stats.value[0].value = data.totalCount || 0
+    stats.value[1].value = data.averageScore || 0
+    stats.value[2].value = data.courseEvaluationCount || 0
+    stats.value[3].value = data.studentCount || 0
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+// 加载图表数据
+const loadChartData = async () => {
+  try {
+    const params = {}
+    if (filterCourse.value) {
+      params.course_id = filterCourse.value
+    }
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.start_date = dateRange.value[0]
+      params.end_date = dateRange.value[1]
+    }
+
+    const result = await teachingFeedbackApi.getTrend(params)
+    console.log('教学反馈趋势:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+
+    // 更新课程评分趋势
+    if (scoreTrendChart && data.score_trend) {
+      scoreTrendChart.setOption({
+        xAxis: { data: data.score_trend.labels || [] },
+        series: [{ data: data.score_trend.values || [] }]
+      })
+    }
+
+    // 更新反馈类型分布
+    if (typeChart && data.type_distribution) {
+      typeChart.setOption({
+        series: [{
+          data: data.type_distribution.map(item => ({
+            value: item.value,
+            name: item.name
+          }))
+        }]
+      })
+    }
+
+    // 更新课程满意度对比
+    if (satisfactionChart && data.satisfaction_comparison) {
+      satisfactionChart.setOption({
+        xAxis: { data: data.satisfaction_comparison.map(item => item.course) },
+        series: [{
+          data: data.satisfaction_comparison.map(item => item.score)
+        }]
+      })
+    }
+  } catch (error) {
+    console.error('加载图表数据失败:', error)
+  }
 }
 
 onMounted(() => {
+  // 加载反馈列表和统计数据
+  loadFeedbackList()
+  loadStats()
+
   nextTick(() => {
     initCharts()
+    // 初始化图表后加载图表数据
+    loadChartData()
   })
 })
 
 const initCharts = () => {
   // 课程评分趋势
-  const scoreTrendChart = echarts.init(scoreTrendChartRef.value)
+  scoreTrendChart = echarts.init(scoreTrendChartRef.value)
   scoreTrendChart.setOption({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月', '6月'] },
+    xAxis: { type: 'category', data: [] },
     yAxis: { type: 'value', min: 0, max: 5 },
     series: [{
-      data: [4.2, 4.5, 4.3, 4.7, 4.6, 4.8],
+      data: [],
       type: 'line',
       smooth: true,
       itemStyle: { color: '#667eea' },
@@ -285,16 +419,12 @@ const initCharts = () => {
   })
 
   // 反馈类型分布
-  const typeChart = echarts.init(typeChartRef.value)
+  typeChart = echarts.init(typeChartRef.value)
   typeChart.setOption({
     tooltip: { trigger: 'item' },
     series: [{
       type: 'pie',
-      data: [
-        { value: 256, name: '课程评价' },
-        { value: 62, name: '教学建议' },
-        { value: 24, name: '问题反馈' }
-      ],
+      data: [],
       itemStyle: {
         color: (params) => {
           const colors = ['#667eea', '#43e97b', '#f5576c']
@@ -305,13 +435,13 @@ const initCharts = () => {
   })
 
   // 课程满意度对比
-  const satisfactionChart = echarts.init(satisfactionChartRef.value)
+  satisfactionChart = echarts.init(satisfactionChartRef.value)
   satisfactionChart.setOption({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: ['Java', 'Python', 'Vue.js', 'MySQL', '算法'] },
+    xAxis: { type: 'category', data: [] },
     yAxis: { type: 'value', min: 0, max: 5 },
     series: [{
-      data: [4.8, 4.6, 4.7, 4.5, 4.9],
+      data: [],
       type: 'bar',
       itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
         { offset: 0, color: '#4facfe' },
@@ -321,7 +451,7 @@ const initCharts = () => {
   })
 
   // 词云图（简化版，实际需要使用echarts-wordcloud插件）
-  const wordCloudChart = echarts.init(wordCloudChartRef.value)
+  wordCloudChart = echarts.init(wordCloudChartRef.value)
   wordCloudChart.setOption({
     tooltip: {},
     series: [{

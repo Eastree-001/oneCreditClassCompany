@@ -86,30 +86,42 @@ export const isValidTokenFormat = (token) => {
 
 /**
  * 从localStorage获取有效的token
+ * @param {string} mode - 'enterprise' | 'university'
  * @returns {string|null} - 有效token或null
  */
-export const getValidToken = () => {
-  const token = localStorage.getItem('token')
-  
+export const getValidToken = (mode = null) => {
+  // 如果没有指定模式，从 app store 获取当前模式
+  if (!mode) {
+    const appMode = localStorage.getItem('appMode') || 'enterprise'
+    mode = appMode
+  }
+
+  const tokenKey = mode === 'university' ? 'token_university' : 'token'
+  const userInfoKey = mode === 'university' ? 'userInfo_university' : 'userInfo'
+  const token = localStorage.getItem(tokenKey)
+
   console.log('获取token验证:', {
+    mode: mode,
+    tokenKey: tokenKey,
     hasToken: !!token,
     tokenFormat: isValidTokenFormat(token),
     isExpired: token ? isTokenExpired(token) : null
   })
-  
+
   if (!token || !isValidTokenFormat(token)) {
     console.log('Token格式无效，清除token')
-    localStorage.removeItem('token')
+    localStorage.removeItem(tokenKey)
+    localStorage.removeItem(userInfoKey)
     return null
   }
-  
+
   if (isTokenExpired(token)) {
     console.log('Token已过期，清除token和用户信息')
-    localStorage.removeItem('token')
-    localStorage.removeItem('userInfo')
+    localStorage.removeItem(tokenKey)
+    localStorage.removeItem(userInfoKey)
     return null
   }
-  
+
   console.log('Token验证通过')
   return token
 }

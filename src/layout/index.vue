@@ -128,6 +128,10 @@ const handleCommand = async (command) => {
     await currentUserStore.value.logout()
     ElMessage.success('退出登录成功')
     router.push('/login')
+  } else if (command === 'profile') {
+    router.push('/personal-center')
+  } else if (command === 'settings') {
+    ElMessage.info('设置功能开发中')
   }
 }
 
