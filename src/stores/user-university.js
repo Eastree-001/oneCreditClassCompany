@@ -97,22 +97,29 @@ export const useUserStoreUniversity = defineStore('userUniversity', {
 
     // 登录
     async login(credentials) {
+      console.log('=== 高校端登录开始 ===')
+      console.log('登录凭证:', { username: credentials.username })
+
       try {
         const result = await userApiUniversity.login(credentials)
-        
+
+        console.log('API响应:', result)
+
         const token = result.token || result.data?.token || result.access_token
         const userInfo = result.userInfo || result.data?.userInfo || result.user || result.data?.user
-        
+
         if (token) {
           if (parseJWT(token)) {
             this.setToken(token)
+            console.log('✅ Token已设置')
           } else {
             throw new Error('服务器返回的token格式无效')
           }
         }
-        
+
         if (userInfo) {
           this.setUserInfo(userInfo)
+          console.log('✅ 用户信息已设置')
         } else if (token) {
           const userInfoFromToken = parseJWT(token)
           if (userInfoFromToken) {
@@ -122,47 +129,22 @@ export const useUserStoreUniversity = defineStore('userUniversity', {
               universityName: userInfoFromToken.universityName,
               userId: userInfoFromToken.userId || userInfoFromToken.sub
             })
+            console.log('✅ 从Token提取用户信息')
           }
         }
-        
-        if (!this.token && this.userInfo) {
-          const demoToken = 'demo-token-university-' + Date.now()
-          this.setToken(demoToken)
+
+        if (!this.token) {
+          throw new Error('登录失败：未获取到token')
         }
-        
-        if (this.token && !this.userInfo) {
-          this.setUserInfo({
-            username: credentials.username || '用户',
-            universityName: '演示高校',
-            email: 'demo@university.com',
-            userId: 'demo-user-university-' + Date.now()
-          })
-        }
-        
+
+        console.log('=== 高校端登录成功 ===')
         return {
           token: this.token,
           userInfo: this.userInfo
         }
       } catch (error) {
-        console.error('登录过程中发生错误:', error)
-        
-        if (credentials.username && credentials.password) {
-          console.warn('API调用失败，使用演示模式登录')
-          this.setToken('demo-token-university-' + Date.now())
-          this.setUserInfo({
-            username: credentials.username,
-            universityName: '演示高校',
-            email: 'demo@university.com',
-            userId: 'demo-user-university-' + Date.now()
-          })
-          
-          return {
-            token: this.token,
-            userInfo: this.userInfo
-          }
-        }
-        
-        throw error
+        console.error('❌ 登录失败:', error)
+        throw new Error(error.message || '登录失败，请检查用户名和密码')
       }
     },
 

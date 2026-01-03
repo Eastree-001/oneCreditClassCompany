@@ -49,7 +49,7 @@
         <el-table-column prop="submitTime" label="提交时间" width="180" />
         <el-table-column prop="status" label="审批状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="approver" label="审批人" width="120" />
@@ -58,7 +58,7 @@
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleView(row)">查看详情</el-button>
             <el-button
-              v-if="row.status === '待审批'"
+              v-if="row.status === 'pending'"
               type="success"
               link
               size="small"
@@ -89,6 +89,7 @@
       v-model="detailDialogVisible"
       title="课程切片详情"
       width="900px"
+      v-loading="detailLoading"
     >
       <el-descriptions :column="2" border v-if="currentCourse">
         <el-descriptions-item label="课程名称">{{ currentCourse.courseName }}</el-descriptions-item>
@@ -98,7 +99,7 @@
         <el-descriptions-item label="提交人">{{ currentCourse.proposer }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ currentCourse.submitTime }}</el-descriptions-item>
         <el-descriptions-item label="审批状态">
-          <el-tag :type="getStatusType(currentCourse.status)">{{ currentCourse.status }}</el-tag>
+          <el-tag :type="getStatusType(currentCourse.status)">{{ getStatusText(currentCourse.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="审批人">{{ currentCourse.approver || '-' }}</el-descriptions-item>
         <el-descriptions-item label="审批时间">{{ currentCourse.approvalTime || '-' }}</el-descriptions-item>
@@ -114,18 +115,24 @@
               class="slice-item"
             >
               <div class="slice-header">
-                <span class="slice-title">切片 {{ index + 1 }}: {{ slice.name }}</span>
+                <el-tag type="primary" size="large">切片 {{ index + 1 }}</el-tag>
+                <span class="slice-title">{{ slice.name }}</span>
               </div>
-              <div class="slice-skills">
-                <span class="skills-label">映射技能：</span>
-                <el-tag
-                  v-for="(skill, skillIndex) in slice.skills"
-                  :key="skillIndex"
-                  type="info"
-                  style="margin-right: 8px; margin-bottom: 8px"
-                >
-                  {{ getSkillName(skill) }}
-                </el-tag>
+              <div class="slice-skills" v-if="slice.skills && slice.skills.length > 0">
+                <div class="skills-label">映射技能：</div>
+                <div class="skills-container">
+                  <el-tag
+                    v-for="(skill, skillIndex) in slice.skills"
+                    :key="skillIndex"
+                    type="info"
+                    class="skill-tag"
+                  >
+                    {{ skill.name || skill.code || skill }}
+                  </el-tag>
+                </div>
+              </div>
+              <div v-else class="no-skills">
+                <el-empty description="暂无映射技能" :image-size="60" />
               </div>
             </el-card>
           </div>
@@ -167,14 +174,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import { courseSliceApi } from '@/api/university'
 
 const searchKeyword = ref('')
 const filterStatus = ref('')
 const filterCategory = ref('')
 const loading = ref(false)
+const detailLoading = ref(false)
 const detailDialogVisible = ref(false)
 const approvalDialogVisible = ref(false)
 const approvalFormRef = ref(null)
@@ -185,96 +194,46 @@ const pagination = ref({
   total: 0
 })
 
-const courseList = ref([
-  {
-    id: 1,
-    courseName: 'Java程序设计',
-    category: '编程语言',
-    sliceCount: 8,
-    skillCount: 15,
-    proposer: '张教授',
-    submitTime: '2024-01-15 10:30:00',
-    status: '待审批',
-    approver: '',
-    approvalTime: '',
-    description: 'Java程序设计基础课程，涵盖Java语言基础、面向对象编程、集合框架等内容。',
-    slices: [
-      {
-        name: 'Java基础语法',
-        skills: ['java-basic', 'oop']
-      },
-      {
-        name: '集合框架',
-        skills: ['data-structure']
-      },
-      {
-        name: '异常处理',
-        skills: ['java-basic']
-      }
-    ]
-  },
-  {
-    id: 2,
-    courseName: 'Python数据分析',
-    category: '编程语言',
-    sliceCount: 6,
-    skillCount: 12,
-    proposer: '李老师',
-    submitTime: '2024-01-14 15:20:00',
-    status: '已通过',
-    approver: '王主任',
-    approvalTime: '2024-01-16 09:15:00',
-    description: 'Python数据分析课程，学习使用Python进行数据处理和分析。',
-    slices: [
-      {
-        name: 'NumPy基础',
-        skills: ['data-structure']
-      },
-      {
-        name: 'Pandas数据处理',
-        skills: ['database-design']
-      }
-    ]
-  },
-  {
-    id: 3,
-    courseName: 'Vue.js前端开发',
-    category: '前端开发',
-    sliceCount: 10,
-    skillCount: 18,
-    proposer: '刘老师',
-    submitTime: '2024-01-13 09:15:00',
-    status: '已拒绝',
-    approver: '王主任',
-    approvalTime: '2024-01-14 14:30:00',
-    description: 'Vue.js前端开发框架课程。',
-    slices: [
-      {
-        name: 'Vue基础',
-        skills: ['frontend-framework']
-      }
-    ]
-  },
-  {
-    id: 4,
-    courseName: 'MySQL数据库',
-    category: '数据库',
-    sliceCount: 5,
-    skillCount: 10,
-    proposer: '陈老师',
-    submitTime: '2024-01-12 14:45:00',
-    status: '待审批',
-    approver: '',
-    approvalTime: '',
-    description: 'MySQL数据库管理与应用课程。',
-    slices: [
-      {
-        name: 'SQL基础',
-        skills: ['database-design']
-      }
-    ]
+const courseList = ref([])
+
+// 加载课程切片列表
+const loadCourseList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: pagination.value.page,
+      size: pagination.value.size
+    }
+
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    if (filterCategory.value) {
+      params.category = filterCategory.value
+    }
+
+    const result = await courseSliceApi.getList(params)
+    console.log('课程切片列表:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    courseList.value = data.list || []
+    pagination.value.total = data.total || 0
+  } catch (error) {
+    console.error('加载课程切片列表失败:', error)
+    ElMessage.error('加载课程切片列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadCourseList()
+})
 
 const currentCourse = ref(null)
 
@@ -311,11 +270,23 @@ const getCategoryType = (category) => {
 
 const getStatusType = (status) => {
   const typeMap = {
+    'pending': 'warning',
+    'approved': 'success',
+    'rejected': 'danger',
     '待审批': 'warning',
     '已通过': 'success',
     '已拒绝': 'danger'
   }
   return typeMap[status] || ''
+}
+
+const getStatusText = (status) => {
+  const textMap = {
+    'pending': '待审批',
+    'approved': '已通过',
+    'rejected': '已拒绝'
+  }
+  return textMap[status] || status
 }
 
 const getSkillName = (skillValue) => {
@@ -324,13 +295,26 @@ const getSkillName = (skillValue) => {
 }
 
 const handleSearch = () => {
-  // 搜索逻辑
-  ElMessage.info('搜索功能待实现')
+  pagination.value.page = 1
+  loadCourseList()
 }
 
-const handleView = (row) => {
-  currentCourse.value = row
+const handleView = async (row) => {
+  detailLoading.value = true
   detailDialogVisible.value = true
+  try {
+    const result = await courseSliceApi.getDetail(row.id)
+    console.log('课程切片详情:', result)
+
+    // 提取数据（支持嵌套 data 结构）
+    const data = result.data?.data || result.data || result
+    currentCourse.value = data
+  } catch (error) {
+    console.error('加载课程切片详情失败:', error)
+    ElMessage.error('加载课程切片详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const handleApprove = (row) => {
@@ -345,25 +329,35 @@ const handleApprove = (row) => {
 const handleSubmitApproval = async () => {
   try {
     await approvalFormRef.value.validate()
+
+    // 调用审批API
+    const approveData = {
+      status: approvalForm.value.result,
+      comment: approvalForm.value.comment
+    }
+
+    await courseSliceApi.approve(currentCourse.value.id, approveData)
+    console.log('课程切片审批成功')
+
     ElMessage.success('审批成功')
     approvalDialogVisible.value = false
-    // 更新列表数据
-    if (currentCourse.value) {
-      currentCourse.value.status = approvalForm.value.result === 'approved' ? '已通过' : '已拒绝'
-      currentCourse.value.approver = '当前用户'
-      currentCourse.value.approvalTime = new Date().toLocaleString('zh-CN')
-    }
+
+    // 重新加载列表
+    loadCourseList()
   } catch (error) {
-    // 验证失败，不处理
+    console.error('审批失败:', error)
+    ElMessage.error(error.message || '审批失败')
   }
 }
 
 const handleSizeChange = (size) => {
   pagination.value.size = size
+  loadCourseList()
 }
 
 const handlePageChange = (page) => {
   pagination.value.page = page
+  loadCourseList()
 }
 </script>
 
@@ -391,11 +385,13 @@ const handlePageChange = (page) => {
 
       .slice-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        gap: 12px;
+        margin-bottom: 16px;
 
         .slice-title {
+          flex: 1;
+          font-size: 16px;
           font-weight: 600;
           color: var(--text-primary);
         }
@@ -404,8 +400,24 @@ const handlePageChange = (page) => {
       .slice-skills {
         .skills-label {
           color: var(--text-secondary);
-          margin-right: 8px;
+          margin-bottom: 10px;
+          font-size: 14px;
         }
+
+        .skills-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .skill-tag {
+            padding: 8px 16px;
+            font-size: 14px;
+          }
+        }
+      }
+
+      .no-skills {
+        padding: 20px 0;
       }
     }
   }

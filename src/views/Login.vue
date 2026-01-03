@@ -272,12 +272,183 @@ const registerForm = reactive({
   confirmPassword: ''
 })
 
+// 计算属性：是否可以发送验证码
+const canSendCode = computed(() => {
+  return registerForm.email && 
+         /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(registerForm.email) &&
+         codeCountdown.value === 0
+})
+
+// 计算属性：是否可以发送重置验证码
+const canSendResetCode = computed(() => {
+  return forgotPasswordForm.email && 
+         /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(forgotPasswordForm.email) &&
+         resetCodeCountdown.value === 0
+})
+
+// 发送验证码
+const handleSendVerificationCode = async () => {
+  if (!canSendCode.value) return
+
+  codeSending.value = true
+  try {
+    const endpoint = appStore.isEnterprise
+      ? '/api/enterprise/auth/send-verification'
+      : '/api/university/auth/send-verification'
+
+    console.log('发送验证码请求:', {
+      email: registerForm.email,
+      endpoint: endpoint,
+      isUniversity: !appStore.isEnterprise
+    })
+
+    if (appStore.isEnterprise) {
+      await userApi.sendVerification({
+        email: registerForm.email
+      })
+    } else {
+      await userApiUniversity.sendVerification({
+        email: registerForm.email
+      })
+    }
+
+    ElMessage.success('验证码已发送到您的邮箱')
+
+    // 开始倒计时
+    codeCountdown.value = 60
+    const timer = setInterval(() => {
+      codeCountdown.value--
+      if (codeCountdown.value <= 0) {
+        clearInterval(timer)
+        codeButtonText.value = '获取验证码'
+      } else {
+        codeButtonText.value = `${codeCountdown.value}秒后重试`
+      }
+    }, 1000)
+
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+  } finally {
+    codeSending.value = false
+  }
+}
+
 const validateConfirmPassword = (rule, value, callback) => {
   if (value !== registerForm.password) {
     callback(new Error('两次输入的密码不一致'))
   } else {
     callback()
   }
+}
+
+// 发送重置密码验证码
+const handleSendResetCode = async () => {
+  if (!canSendResetCode.value) return
+
+  resetCodeSending.value = true
+  try {
+    const endpoint = appStore.isEnterprise
+      ? '/api/enterprise/auth/send-reset-code'
+      : '/api/university/auth/send-reset-code'
+
+    console.log('发送重置验证码请求:', {
+      email: forgotPasswordForm.email,
+      endpoint: endpoint,
+      isUniversity: !appStore.isEnterprise
+    })
+
+    if (appStore.isEnterprise) {
+      await userApi.sendResetCode({
+        email: forgotPasswordForm.email
+      })
+    } else {
+      await userApiUniversity.sendResetCode({
+        email: forgotPasswordForm.email
+      })
+    }
+
+    ElMessage.success('验证码已发送到您的邮箱')
+
+    // 开始倒计时
+    resetCodeCountdown.value = 60
+    const timer = setInterval(() => {
+      resetCodeCountdown.value--
+      if (resetCodeCountdown.value <= 0) {
+        clearInterval(timer)
+        resetCodeButtonText.value = '获取验证码'
+      } else {
+        resetCodeButtonText.value = `${resetCodeCountdown.value}秒后重试`
+      }
+    }, 1000)
+
+  } catch (error) {
+    console.error('发送重置验证码失败:', error)
+  } finally {
+    resetCodeSending.value = false
+  }
+}
+
+// 重置密码
+const handleResetPassword = async () => {
+  if (!forgotPasswordFormRef.value) return
+
+  await forgotPasswordFormRef.value.validate(async (valid) => {
+    if (valid) {
+      resetPasswordLoading.value = true
+      try {
+        const resetData = {
+          email: forgotPasswordForm.email,
+          verificationCode: forgotPasswordForm.resetCode,
+          newPassword: forgotPasswordForm.newPassword
+        }
+
+        const endpoint = appStore.isEnterprise
+          ? '/api/enterprise/auth/reset-password-with-code'
+          : '/api/university/auth/reset-password-with-code'
+
+        console.log('发送重置密码请求:', {
+          endpoint: endpoint,
+          data: {
+            ...resetData,
+            newPassword: '***' // 隐藏密码
+          },
+          isUniversity: !appStore.isEnterprise
+        })
+
+        if (appStore.isEnterprise) {
+          await userApi.resetPassword(resetData)
+        } else {
+          await userApiUniversity.resetPassword(resetData)
+        }
+
+        ElMessage.success('密码重置成功，请使用新密码登录')
+
+        // 关闭模态框
+        showForgotPasswordDialog.value = false
+
+        // 清空表单
+        resetForgotPasswordForm()
+
+      } catch (error) {
+        console.error('重置密码失败:', error)
+      } finally {
+        resetPasswordLoading.value = false
+      }
+    }
+  })
+}
+
+// 重置忘记密码表单
+const resetForgotPasswordForm = () => {
+  Object.assign(forgotPasswordForm, {
+    email: '',
+    resetCode: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  resetCodeCountdown.value = 0
+  resetCodeButtonText.value = '获取验证码'
+  forgotPasswordFormRef.value?.clearValidate()
 }
 
 const loginRules = {
@@ -395,14 +566,29 @@ const handleRegister = async () => {
           username: registerForm.username,
           email: registerForm.email,
           phone: registerForm.phone,
-          password: registerForm.password
+          password: registerForm.password,
+          verificationCode: registerForm.verificationCode
         } : {
           universityName: registerForm.companyName,
           username: registerForm.username,
           email: registerForm.email,
           phone: registerForm.phone,
-          password: registerForm.password
+          password: registerForm.password,
+          emailVerificationCode: registerForm.verificationCode
         }
+        
+        const registerEndpoint = appStore.isEnterprise
+          ? '/api/enterprise/auth/register'
+          : '/api/university/auth/register'
+
+        console.log('发送注册请求:', {
+          endpoint: registerEndpoint,
+          data: {
+            ...registerData,
+            password: '***' // 隐藏密码
+          },
+          isUniversity: !appStore.isEnterprise
+        })
         
         // 调用注册API
         const result = appStore.isEnterprise 
