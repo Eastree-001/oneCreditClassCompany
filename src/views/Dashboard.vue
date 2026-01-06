@@ -1,90 +1,97 @@
 <template>
   <div class="dashboard">
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6" v-for="stat in stats" :key="stat.title">
-        <el-card class="stat-card card-hover" shadow="hover" v-loading="statsLoading">
-          <div class="stat-content">
-            <div class="stat-icon" :style="{ background: stat.color }">
-              <el-icon :size="24"><component :is="stat.icon" /></el-icon>
+    <el-row :gutter="20">
+      <!-- 左侧内容区域 -->
+      <el-col :xs="24" :sm="24" :md="16">
+        <!-- 统计卡片 -->
+        <el-row :gutter="20" class="stats-row">
+          <el-col :xs="24" :sm="12" :md="6" v-for="stat in stats" :key="stat.title">
+            <el-card class="stat-card card-hover" shadow="hover" v-loading="statsLoading">
+              <div class="stat-content">
+                <div class="stat-icon" :style="{ background: stat.color }">
+                  <el-icon :size="24"><component :is="stat.icon" /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ statsLoading ? '...' : stat.value }}</div>
+                  <div class="stat-title">{{ stat.title }}</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- 图表区域 -->
+        <el-row :gutter="20" class="charts-row">
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>课程匹配趋势</span>
+                </div>
+              </template>
+              <div ref="matchTrendChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>岗位画像分布</span>
+                </div>
+              </template>
+              <div ref="profileChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20" class="charts-row">
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>培训计划完成情况</span>
+                </div>
+              </template>
+              <div ref="trainingChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>合作高校统计</span>
+                </div>
+              </template>
+              <div ref="cooperationChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-col>
+
+      <!-- 右侧最近活动 -->
+      <el-col :xs="24" :sm="24" :md="8">
+        <el-card class="activity-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span>最近活动</span>
             </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statsLoading ? '...' : stat.value }}</div>
-              <div class="stat-title">{{ stat.title }}</div>
-            </div>
-          </div>
+          </template>
+          <el-timeline>
+            <el-timeline-item
+              v-for="activity in activities"
+              :key="activity.id"
+              :timestamp="activity.time"
+              placement="top"
+            >
+              <el-card>
+                <h4>{{ activity.title }}</h4>
+                <p>{{ activity.content }}</p>
+              </el-card>
+            </el-timeline-item>
+          </el-timeline>
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 图表区域 -->
-    <el-row :gutter="20" class="charts-row">
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>课程匹配趋势</span>
-            </div>
-          </template>
-          <div ref="matchTrendChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>岗位画像分布</span>
-            </div>
-          </template>
-          <div ref="profileChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" class="charts-row">
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>培训计划完成情况</span>
-            </div>
-          </template>
-          <div ref="trainingChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>合作高校统计</span>
-            </div>
-          </template>
-          <div ref="cooperationChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 最近活动 -->
-    <el-card class="activity-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span>最近活动</span>
-        </div>
-      </template>
-      <el-timeline>
-        <el-timeline-item
-          v-for="activity in activities"
-          :key="activity.id"
-          :timestamp="activity.time"
-          placement="top"
-        >
-          <el-card>
-            <h4>{{ activity.title }}</h4>
-            <p>{{ activity.content }}</p>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
-    </el-card>
   </div>
 </template>
 
@@ -122,17 +129,6 @@ const stats = ref([
     ]
   },
   { 
-    title: '合作项目', 
-    value: '0', 
-    icon: 'Document', 
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
-    key: 'cooperations',
-    possibleKeys: [
-      'cooperations', 'cooperationCount', 'cooperation_count', 'projectCount', 'project_count',
-      'projects', 'project_count', 'partners', 'partner_count', 'collaborations', 'collaboration_count'
-    ]
-  },
-  { 
     title: '培训计划', 
     value: '0', 
     icon: 'Calendar', 
@@ -141,6 +137,17 @@ const stats = ref([
     possibleKeys: [
       'trainings', 'trainingCount', 'training_count', 'planCount', 'plan_count',
       'plans', 'plan_count', 'programs', 'program_count', 'courses', 'course_count'
+    ]
+  },
+  { 
+    title: '合作项目', 
+    value: '0', 
+    icon: 'Document', 
+    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
+    key: 'cooperations',
+    possibleKeys: [
+      'cooperations', 'cooperationCount', 'cooperation_count', 'projectCount', 'project_count',
+      'projects', 'project_count', 'partners', 'partner_count', 'collaborations', 'collaboration_count'
     ]
   }
 ])
@@ -1381,10 +1388,48 @@ onMounted(async () => {
   }
   
   .activity-card {
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    
     .card-header {
       font-weight: 600;
       font-size: 16px;
       color: var(--text-primary);
+    }
+    
+    .el-timeline {
+      margin-top: 10px;
+      
+      .el-timeline-item {
+        :deep(.el-card) {
+          margin-bottom: 10px;
+          
+          h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+          
+          p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+          }
+        }
+      }
+    }
+  }
+  
+  // 小屏幕下取消 sticky 定位
+  @media (max-width: 768px) {
+    .activity-card {
+      position: static;
+      max-height: none;
     }
   }
 }

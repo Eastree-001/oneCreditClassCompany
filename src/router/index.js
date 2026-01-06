@@ -26,6 +26,12 @@ const routes = [
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: '数据看板', icon: 'DataBoard', requiresAuth: true, mode: 'enterprise' }
       },
+      {
+        path: 'enterprise-cooperation',
+        name: 'EnterpriseCooperation',
+        component: () => import('@/views/EnterpriseCooperation/index.vue'),
+        meta: { title: '校企合作管理', icon: 'Connection', requiresAuth: true, mode: 'enterprise' }
+      },
       // 高校端路由
       {
         path: 'dashboard-university',
