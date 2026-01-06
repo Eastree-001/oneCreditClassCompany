@@ -19,12 +19,21 @@
           />
         </el-form-item>
         <el-form-item label="合作高校">
-          <el-select v-model="searchForm.school" placeholder="请选择" clearable style="width: 150px">
-            <el-option label="清华大学" value="tsinghua" />
-            <el-option label="北京大学" value="pku" />
-            <el-option label="复旦大学" value="fudan" />
-            <el-option label="上海交通大学" value="sjtu" />
-            <el-option label="浙江大学" value="zju" />
+          <el-select
+            v-model="searchForm.school"
+            placeholder="请选择"
+            clearable
+            style="width: 150px"
+            filterable
+            :loading="universityListLoading"
+            @visible-change="handleUniversitySelectVisible"
+          >
+            <el-option
+              v-for="item in universityList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="项目状态">
@@ -42,7 +51,7 @@
       <!-- 项目列表 -->
       <el-table :data="projectList" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="name" label="项目名称" min-width="200" />
-        <el-table-column prop="school" label="合作高校" width="150" />
+        <el-table-column prop="school.name" label="合作高校" width="150" />
         <el-table-column prop="type" label="项目类型" width="120">
           <template #default="{ row }">
             <el-tag :type="getTypeTag(row.type)">{{ getTypeName(row.type) }}</el-tag>
@@ -122,12 +131,20 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="合作高校" prop="school">
-              <el-select v-model="formData.school" placeholder="请选择合作高校" style="width: 100%">
-                <el-option label="清华大学" value="tsinghua" />
-                <el-option label="北京大学" value="pku" />
-                <el-option label="复旦大学" value="fudan" />
-                <el-option label="上海交通大学" value="sjtu" />
-                <el-option label="浙江大学" value="zju" />
+              <el-select
+                v-model="formData.school"
+                placeholder="请选择合作高校"
+                style="width: 100%"
+                filterable
+                :loading="universityListLoading"
+                @visible-change="handleUniversitySelectVisible"
+              >
+                <el-option
+                  v-for="item in universityList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -303,7 +320,7 @@ import {
   View,
   TrendCharts
 } from '@element-plus/icons-vue'
-import { cooperationApi } from '@/api'
+import { cooperationApi, userApi } from '@/api'
 import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
 
 const router = useRouter()
@@ -316,6 +333,10 @@ const progressDialogVisible = ref(false)
 const isEdit = ref(false)
 const progressSubmitLoading = ref(false)
 const currentProject = ref(null)
+
+// 高校列表数据
+const universityList = ref([])
+const universityListLoading = ref(false)
 
 const searchForm = reactive({
   keyword: '',
@@ -505,9 +526,44 @@ const fetchProjects = async () => {
 onMounted(() => {
   console.log('合作项目管理页面挂载，开始获取合作项目数据')
   fetchProjects()
+  loadUniversityList()
 })
 
+// 获取高校列表
+const loadUniversityList = async () => {
+  if (universityList.value.length > 0) return
+  universityListLoading.value = true
+  try {
+    const result = await userApi.getUniversityList()
+    const data = result.data?.data || result.data || result
+    universityList.value = Array.isArray(data) ? data : []
+    console.log('🎓 高校列表加载完成:', universityList.value)
+  } catch (error) {
+    console.error('获取高校列表失败:', error)
+    ElMessage.error('获取高校列表失败')
+  } finally {
+    universityListLoading.value = false
+  }
+}
+
+// 下拉框显示时加载高校列表
+const handleUniversitySelectVisible = (visible) => {
+  if (visible) {
+    loadUniversityList()
+  }
+}
+
 const getSchoolName = (value) => {
+  // 支持对象格式：{ id, name, email, phone }
+  if (value && typeof value === 'object' && value.name) {
+    return value.name
+  }
+  // 支持ID格式，从高校列表中查找
+  if (value && typeof value !== 'object') {
+    const university = universityList.value.find(item => item.id === value)
+    if (university) return university.name
+  }
+  // 支持旧的字符串格式
   const map = {
     tsinghua: '清华大学',
     pku: '北京大学',
@@ -539,7 +595,10 @@ const getTypeName = (type) => {
 const getStatusTag = (status) => {
   const map = {
     ongoing: 'success',
-    completed: 'info'
+    completed: 'info',
+    可报名: 'success',
+    进行中: 'warning',
+    已结束: 'info'
   }
   return map[status] || 'info'
 }
@@ -547,7 +606,10 @@ const getStatusTag = (status) => {
 const getStatusName = (status) => {
   const map = {
     ongoing: '进行中',
-    completed: '已完成'
+    completed: '已完成',
+    可报名: '可报名',
+    进行中: '进行中',
+    已结束: '已结束'
   }
   return map[status] || status
 }
@@ -583,8 +645,19 @@ const handleEdit = (row) => {
 }
 
 const handleView = (row) => {
-  // 跳转到详情页面
-  router.push(`/cooperation/${row.id}`)
+  console.log('handleView - row 数据:', row)
+  console.log('handleView - row.id:', row.id)
+  
+  // 尝试多种可能的 ID 字段名
+  const projectId = row.id || row.project_id || row.cooperation_project_id || row.cooperationId
+  
+  if (!projectId) {
+    ElMessage.error('无法获取项目ID，请检查数据')
+    return
+  }
+  
+  console.log('跳转到详情页，项目ID:', projectId)
+  router.push(`/cooperation/${projectId}`)
 }
 
 const handleDelete = async (row) => {

@@ -58,6 +58,12 @@ const routes = [
         meta: { title: '校企合作管理', icon: 'Connection', requiresAuth: true, mode: 'university' }
       },
       {
+        path: 'cooperation-review/:cooperationId',
+        name: 'CooperationReview',
+        component: () => import('@/views/CooperationReview.vue'),
+        meta: { title: '审核报名', icon: 'Connection', requiresAuth: true, mode: 'university' }
+      },
+      {
         path: 'skill-profile',
         name: 'SkillProfile',
         component: () => import('@/views/SkillProfile/index.vue'),
