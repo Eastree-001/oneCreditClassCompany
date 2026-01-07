@@ -74,14 +74,14 @@ export const dashboardApi = {
     return result
   },
   
-  // 获取培训计划完成情况
+  // 获取培训课程完成情况
   getTrainingStatus: (params) => {
     console.log('=== 调用getTrainingStatus API ===')
     console.log('端点:', API_ENDPOINTS.DASHBOARD.TRAINING_STATUS)
     console.log('参数:', params)
     
     const result = request.get(API_ENDPOINTS.DASHBOARD.TRAINING_STATUS, { params })
-    console.log('培训计划完成情况API调用已发送，等待响应...')
+    console.log('培训课程完成情况API调用已发送，等待响应...')
     return result
   },
   
@@ -534,14 +534,14 @@ export const trainingApi = {
     return request.get(API_ENDPOINTS.TRAINING.LIST, { params })
   },
   
-  // 获取企业培训计划列表（需要token验证）
+  // 获取企业培训课程列表（需要token验证）
   getEnterpriseList: (params) => {
     console.log('=== 调用getEnterpriseList API ===')
     console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_LIST)
     console.log('参数:', params)
     
     const result = request.get(API_ENDPOINTS.TRAINING.ENTERPRISE_LIST, { params })
-    console.log('企业培训计划API调用已发送，等待响应...')
+    console.log('企业培训课程API调用已发送，等待响应...')
     return result
   },
   
@@ -556,35 +556,35 @@ export const trainingApi = {
     return result
   },
   
-  // 获取单个培训计划详情（需要token验证）
+  // 获取单个培训课程详情（需要token验证）
   getDetail: (id) => {
     console.log('=== 调用getDetail API ===')
     console.log('端点:', `${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
-    console.log('培训计划ID:', id)
+    console.log('培训课程ID:', id)
     
     const result = request.get(`${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
-    console.log('培训计划详情API调用已发送，等待响应...')
+    console.log('培训课程详情API调用已发送，等待响应...')
     return result
   },
   
-  // 创建企业培训计划（需要token验证）
+  // 创建企业培训课程（需要token验证）
   createEnterprise: (data) => {
     console.log('=== 调用createEnterprise API ===')
     console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE)
     console.log('请求数据:', data)
     
     const result = request.post(API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE, data)
-    console.log('企业培训计划创建API调用已发送，等待响应...')
+    console.log('企业培训课程创建API调用已发送，等待响应...')
     return result
   },
   
-  // 更新企业培训计划（需要token验证）
+  // 更新企业培训课程（需要token验证）
   updateEnterprise: (id, data) => {
     console.log('=== 调用updateEnterprise API ===')
     const url = `${API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE}/${id}`
     console.log('完整URL:', url)
     console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE)
-    console.log('培训计划ID:', id)
+    console.log('培训课程ID:', id)
     console.log('更新数据:', data)
     console.log('课程数据详情:', {
       courses: data.courses,
@@ -593,30 +593,30 @@ export const trainingApi = {
     })
     
     const result = request.put(url, data)
-    console.log('企业培训计划更新API调用已发送，等待响应...')
+    console.log('企业培训课程更新API调用已发送，等待响应...')
     return result
   },
   
-  // 更新企业培训计划进度（需要token验证）
+  // 更新企业培训课程进度（需要token验证）
   updateProgress: (id, progressData) => {
     console.log('=== 调用updateProgress API ===')
     console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`)
-    console.log('培训计划ID:', id)
+    console.log('培训课程ID:', id)
     console.log('进度数据:', progressData)
     
     const result = request.put(`${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`, progressData)
-    console.log('企业培训计划进度更新API调用已发送，等待响应...')
+    console.log('企业培训课程进度更新API调用已发送，等待响应...')
     return result
   },
   
-  // 删除企业培训计划（需要token验证）
+  // 删除企业培训课程（需要token验证）
   deleteEnterprise: (id) => {
     console.log('=== 调用deleteEnterprise API ===')
     console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
-    console.log('培训计划ID:', id)
+    console.log('培训课程ID:', id)
     
     const result = request.delete(`${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
-    console.log('企业培训计划删除API调用已发送，等待响应...')
+    console.log('企业培训课程删除API调用已发送，等待响应...')
     return result
   },
   

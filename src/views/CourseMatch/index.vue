@@ -150,7 +150,7 @@
                     查看详情
                   </el-button>
                   <el-button type="primary" link @click="addToTraining(course)">
-                    加入培训计划
+                    加入培训课程
                   </el-button>
                 </div>
               </el-card>
@@ -583,10 +583,10 @@ const generateSuggestions = (profile) => {
     },
     {
       type: '培训优化',
-      title: '培训计划建议',
-      content: '建议将高匹配度课程（匹配度>85%）纳入新员工培训计划，预计可缩短培训周期至2-3周。',
+      title: '培训课程建议',
+      content: '建议将高匹配度课程（匹配度>85%）纳入新员工培训课程，预计可缩短培训周期至2-3周。',
       actions: [
-        { label: '创建培训计划', action: 'training' }
+        { label: '创建培训课程', action: 'training' }
       ]
     }
   ]
@@ -734,7 +734,7 @@ const viewCourseDetail = (course) => {
 }
 
 const addToTraining = (course) => {
-  ElMessage.success(`已将《${course.name}》加入培训计划`)
+  ElMessage.success(`已将《${course.name}》加入培训课程`)
 }
 
 const handleSuggestionAction = (action) => {

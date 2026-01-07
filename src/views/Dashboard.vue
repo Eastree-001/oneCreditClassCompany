@@ -49,7 +49,7 @@
             <el-card class="chart-card" shadow="hover">
               <template #header>
                 <div class="card-header">
-                  <span>培训计划完成情况</span>
+                  <span>培训课程完成情况</span>
                 </div>
               </template>
               <div ref="trainingChartRef" class="chart-container"></div>
@@ -129,7 +129,7 @@ const stats = ref([
     ]
   },
   { 
-    title: '培训计划', 
+    title: '培训课程', 
     value: '0', 
     icon: 'Calendar', 
     color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
@@ -208,8 +208,8 @@ const activities = ref([
   },
   {
     id: 4,
-    title: '培训计划完成',
-    content: '新员工入职培训计划已完成，培训周期缩短至2周',
+    title: '培训课程完成',
+    content: '新员工入职培训课程已完成，培训周期缩短至2周',
     time: '2024-01-12 16:45'
   }
 ])
@@ -812,14 +812,14 @@ const updateChartsWithData = (chartData) => {
   }
 }
 
-// 获取培训计划完成情况数据
+// 获取培训课程完成情况数据
 const fetchTrainingStatusData = async () => {
   try {
-    console.log('=== 开始获取培训计划完成情况数据 ===')
+    console.log('=== 开始获取培训课程完成情况数据 ===')
     console.log('当前token:', localStorage.getItem('token') ? '存在' : '不存在')
     
     const result = await dashboardApi.getTrainingStatus()
-    console.log('=== 培训计划完成情况API原始响应 ===')
+    console.log('=== 培训课程完成情况API原始响应 ===')
     console.log('完整响应:', result)
     
     // 处理API响应格式：{ code: 200, message: "Success", data: { completed: 0, ongoing: 0, pending: 1 }, errors: null }
@@ -833,7 +833,7 @@ const fetchTrainingStatusData = async () => {
       trainingData = result
     }
     
-    console.log('=== 处理后的培训计划完成情况数据 ===')
+    console.log('=== 处理后的培训课程完成情况数据 ===')
     console.log('培训数据:', trainingData)
     
     if (trainingData && typeof trainingData === 'object') {
@@ -855,9 +855,9 @@ const fetchTrainingStatusData = async () => {
       console.log('图表数据:', chartData)
       console.log('对应关系: [已完成, 进行中, 待开始]')
       
-      // 更新培训计划完成情况图表
+      // 更新培训课程完成情况图表
       if (trainingChart) {
-        console.log('=== 更新培训计划完成情况图表 ===')
+        console.log('=== 更新培训课程完成情况图表 ===')
         
         trainingChart.setOption({
           series: [{
@@ -873,7 +873,7 @@ const fetchTrainingStatusData = async () => {
           }]
         })
         
-        console.log('✓ 培训计划完成情况图表更新成功')
+        console.log('✓ 培训课程完成情况图表更新成功')
       } else {
         console.error('✗ trainingChart 未初始化')
       }
@@ -882,7 +882,7 @@ const fetchTrainingStatusData = async () => {
       throw new Error('服务器返回的培训数据格式不正确')
     }
   } catch (error) {
-    console.error('=== 获取培训计划完成情况数据失败 ===')
+    console.error('=== 获取培训课程完成情况数据失败 ===')
     console.error('错误信息:', error.message)
     console.error('错误堆栈:', error.stack)
     
@@ -895,7 +895,7 @@ const fetchTrainingStatusData = async () => {
     }
     
     // 显示友好的错误信息
-    console.log('使用默认数据显示培训计划完成情况图表')
+    console.log('使用默认数据显示培训课程完成情况图表')
     
     // 使用默认数据初始化图表
     if (trainingChart) {
@@ -1308,8 +1308,8 @@ onMounted(async () => {
     console.log('开始获取岗位画像分布数据...')
     fetchProfileDistributionData()
     
-    // 获取培训计划完成情况数据
-    console.log('开始获取培训计划完成情况数据...')
+    // 获取培训课程完成情况数据
+    console.log('开始获取培训课程完成情况数据...')
     fetchTrainingStatusData()
     
     // 获取合作高校统计数据

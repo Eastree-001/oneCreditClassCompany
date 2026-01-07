@@ -104,7 +104,7 @@ const enterpriseMenuList = [
   { path: '/dashboard', title: '数据看板', icon: 'DataBoard' },
   { path: '/skill-profile', title: '岗位技能画像', icon: 'User' },
   { path: '/course-match', title: '课程匹配', icon: 'Connection' }, 
-  { path: '/training', title: '培训计划管理', icon: 'Calendar' },
+  { path: '/training', title: '培训课程管理', icon: 'Calendar' },
   { path: '/cooperation', title: '合作项目管理', icon: 'Document' },
   { path: '/talent-demand', title: '人才需求发布', icon: 'Promotion' },
   { path: '/enterprise-cooperation', title: '校企合作管理', icon: 'Connection' }
@@ -113,8 +113,8 @@ const enterpriseMenuList = [
 const universityMenuList = [
   { path: '/dashboard-university', title: '数据看板', icon: 'DataBoard' },
   { path: '/course-slice', title: '课程切片与技能映射', icon: 'Document' },
-  { path: '/proposal-approval', title: '共建课程/专业提案审批', icon: 'EditPen' },
-  { path: '/teaching-feedback', title: '数据化教学反馈面板', icon: 'DataAnalysis' },
+  { path: '/proposal-approval', title: '企业项目合作', icon: 'EditPen' },
+  { path: '/teaching-feedback', title: '教学评价', icon: 'DataAnalysis' },
   { path: '/cooperation-university', title: '校企合作管理', icon: 'Connection' }
 ]
 

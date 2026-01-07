@@ -283,6 +283,100 @@ const stats = ref([
   { title: '已完成合作', value: '0', icon: 'CircleCheck', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }
 ])
 
+// 模拟数据存储（测试用）
+const mockData = ref([
+  {
+    id: 1,
+    enterpriseId: 1,
+    universityId: 1,
+    universityName: '清华大学',
+    type: 'course',
+    projectName: '前端开发课程共建',
+    description: '与企业合作共建前端开发课程，引入企业真实项目案例，提升学生实践能力。',
+    startTime: '2024-01-01',
+    endTime: '2024-06-30',
+    status: 'pending_university',
+    enterpriseConfirmed: true,
+    universityConfirmed: false,
+    initiator: 'enterprise',
+    studentCount: 60,
+    contact: '张老师',
+    phone: '13800000001'
+  },
+  {
+    id: 2,
+    enterpriseId: 1,
+    universityId: 2,
+    universityName: '北京大学',
+    type: 'project',
+    projectName: 'Java企业级开发实训',
+    description: '与企业合作开展Java企业级开发实训项目，学生参与真实项目开发，提升实战经验。',
+    startTime: '2024-02-01',
+    endTime: '2024-08-31',
+    status: 'active',
+    enterpriseConfirmed: true,
+    universityConfirmed: true,
+    initiator: 'enterprise',
+    studentCount: 45,
+    contact: '李老师',
+    phone: '13800000002'
+  },
+  {
+    id: 3,
+    enterpriseId: 1,
+    universityId: 3,
+    universityName: '复旦大学',
+    type: 'talent',
+    projectName: '大数据分析人才培养',
+    description: '与企业合作培养大数据分析人才，提供实习机会，共同培养符合行业需求的高素质人才。',
+    startTime: '2024-03-01',
+    endTime: '2024-12-31',
+    status: 'pending_enterprise',
+    enterpriseConfirmed: false,
+    universityConfirmed: true,
+    initiator: 'university',
+    studentCount: 30,
+    contact: '王老师',
+    phone: '13800000003'
+  },
+  {
+    id: 4,
+    enterpriseId: 1,
+    universityId: 4,
+    universityName: '上海交通大学',
+    type: 'course',
+    projectName: 'Python数据分析课程共建',
+    description: '与企业合作共建Python数据分析课程，引入企业真实数据分析案例。',
+    startTime: '2023-09-01',
+    endTime: '2024-01-31',
+    status: 'active',
+    enterpriseConfirmed: true,
+    universityConfirmed: true,
+    initiator: 'enterprise',
+    studentCount: 50,
+    contact: '刘老师',
+    phone: '13800000004'
+  },
+  {
+    id: 5,
+    enterpriseId: 1,
+    universityId: 5,
+    universityName: '浙江大学',
+    type: 'project',
+    projectName: 'AI算法工程师实训',
+    description: '与企业合作开展AI算法工程师实训项目，学生参与真实AI项目开发。',
+    startTime: '2024-01-15',
+    endTime: '2024-07-15',
+    status: 'rejected',
+    enterpriseConfirmed: false,
+    universityConfirmed: false,
+    initiator: 'enterprise',
+    studentCount: 0,
+    contact: '陈老师',
+    phone: '13800000005'
+  }
+])
+
 const getTypeTag = (type) => {
   const typeMap = {
     project: 'primary',
@@ -331,33 +425,63 @@ const canConfirm = (row) => {
 const loadCooperationList = async () => {
   loading.value = true
   try {
-    const params = {
-      page: pagination.value.page,
-      size: pagination.value.size
-    }
-
+    // 模拟延迟
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    // 使用测试数据
+    let filteredData = [...mockData.value]
+    
+    // 搜索过滤
     if (searchKeyword.value) {
-      params.keyword = searchKeyword.value
+      const keyword = searchKeyword.value.toLowerCase()
+      filteredData = filteredData.filter(item => 
+        item.universityName.toLowerCase().includes(keyword) ||
+        item.projectName.toLowerCase().includes(keyword)
+      )
     }
+    
+    // 状态过滤
     if (filterStatus.value) {
-      params.status = filterStatus.value
+      filteredData = filteredData.filter(item => item.status === filterStatus.value)
     }
+    
+    // 类型过滤
     if (filterType.value) {
-      params.type = filterType.value
+      filteredData = filteredData.filter(item => item.type === filterType.value)
     }
-
-    const result = await cooperationApi.getEnterpriseRelationList(params)
-    console.log('企业端校企合作关系列表:', result)
-
-    const data = result.data?.data || result.data || result
-    cooperationList.value = data.list || data.items || []
-    pagination.value.total = data.total || 0
+    
+    // 分页
+    const start = (pagination.value.page - 1) * pagination.value.size
+    const end = start + pagination.value.size
+    cooperationList.value = filteredData.slice(start, end)
+    pagination.value.total = filteredData.length
+    
+    // 更新统计数据
+    updateStats()
+    
+    console.log('✅ 使用测试数据加载校企合作列表:', {
+      listLength: cooperationList.value.length,
+      total: pagination.value.total
+    })
   } catch (error) {
     console.error('加载企业端校企合作关系列表失败:', error)
     ElMessage.error('加载校企合作列表失败')
   } finally {
     loading.value = false
   }
+}
+
+// 更新统计数据
+const updateStats = () => {
+  const allData = mockData.value
+  const activeCount = allData.filter(item => item.status === 'active').length
+  const totalStudents = allData.reduce((sum, item) => sum + (item.studentCount || 0), 0)
+  const uniqueUniversities = new Set(allData.map(item => item.universityId)).size
+  
+  stats.value[0].value = String(uniqueUniversities)
+  stats.value[1].value = String(activeCount)
+  stats.value[2].value = String(totalStudents)
+  stats.value[3].value = String(allData.filter(item => item.status === 'active' && new Date(item.endTime) < new Date()).length)
 }
 
 const handleSearch = () => {
@@ -387,11 +511,14 @@ const handleView = async (row) => {
   detailLoading.value = true
   detailDialogVisible.value = true
   try {
-    const result = await cooperationApi.getEnterpriseRelationDetail(row.id)
-    console.log('企业端校企合作关系详情:', result)
-
-    const data = result.data?.data || result.data || result
+    // 模拟延迟
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    // 使用测试数据
+    const data = mockData.value.find(item => item.id === row.id) || row
     currentCooperation.value = data
+    
+    console.log('✅ 使用测试数据加载合作详情:', data)
   } catch (error) {
     console.error('加载企业端校企合作关系详情失败:', error)
     ElMessage.error('加载合作详情失败')
@@ -426,8 +553,16 @@ const handleDelete = (row) => {
   })
     .then(async () => {
       try {
-        await cooperationApi.deleteEnterpriseRelation(row.id)
-        ElMessage.success('删除成功')
+        // 模拟延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 从测试数据中删除
+        const index = mockData.value.findIndex(item => item.id === row.id)
+        if (index > -1) {
+          mockData.value.splice(index, 1)
+        }
+        
+        ElMessage.success('删除成功（测试数据）')
         loadCooperationList()
       } catch (error) {
         console.error('删除合作关系失败:', error)
@@ -441,27 +576,43 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
 
-    const payload = {
-      universityName: formData.value.universityName,
-      universityId: formData.value.universityId,
-      type: formData.value.type,
-      projectName: formData.value.projectName,
-      description: formData.value.description,
-      startTime: formData.value.timeRange?.[0],
-      endTime: formData.value.timeRange?.[1],
-      status: formData.value.status,
-      studentCount: formData.value.studentCount,
-      contact: formData.value.contact,
-      phone: formData.value.phone
-    }
-
     try {
+      // 模拟延迟
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      const payload = {
+        universityName: formData.value.universityName,
+        universityId: formData.value.universityId || Date.now(),
+        type: formData.value.type,
+        projectName: formData.value.projectName,
+        description: formData.value.description,
+        startTime: formData.value.timeRange?.[0] || '',
+        endTime: formData.value.timeRange?.[1] || '',
+        status: formData.value.status,
+        studentCount: formData.value.studentCount,
+        contact: formData.value.contact,
+        phone: formData.value.phone,
+        enterpriseId: 1,
+        enterpriseConfirmed: formData.value.status === 'pending_university',
+        universityConfirmed: false,
+        initiator: 'enterprise'
+      }
+
       if (formData.value.id) {
-        await cooperationApi.updateEnterpriseRelation(formData.value.id, payload)
-        ElMessage.success('更新成功')
+        // 更新
+        const index = mockData.value.findIndex(item => item.id === formData.value.id)
+        if (index > -1) {
+          mockData.value[index] = { ...mockData.value[index], ...payload, id: formData.value.id }
+        }
+        ElMessage.success('更新成功（测试数据）')
       } else {
-        await cooperationApi.createEnterpriseRelation(payload)
-        ElMessage.success('发起合作成功')
+        // 创建
+        const newItem = {
+          id: Date.now(),
+          ...payload
+        }
+        mockData.value.unshift(newItem)
+        ElMessage.success('发起合作成功（测试数据）')
       }
       dialogVisible.value = false
       loadCooperationList()
@@ -495,8 +646,22 @@ const handleConfirm = (row) => {
   })
     .then(async () => {
       try {
-        await cooperationApi.confirmEnterpriseRelation(row.id, {})
-        ElMessage.success('已确认合作')
+        // 模拟延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 更新测试数据
+        const index = mockData.value.findIndex(item => item.id === row.id)
+        if (index > -1) {
+          mockData.value[index].enterpriseConfirmed = true
+          // 如果高校也已确认，则状态变为 active
+          if (mockData.value[index].universityConfirmed) {
+            mockData.value[index].status = 'active'
+          } else {
+            mockData.value[index].status = 'pending_university'
+          }
+        }
+        
+        ElMessage.success('已确认合作（测试数据）')
         loadCooperationList()
       } catch (error) {
         console.error('确认合作失败:', error)
@@ -515,8 +680,17 @@ const handleReject = (row) => {
   })
     .then(async () => {
       try {
-        await cooperationApi.rejectEnterpriseRelation(row.id, {})
-        ElMessage.success('已拒绝合作')
+        // 模拟延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // 更新测试数据
+        const index = mockData.value.findIndex(item => item.id === row.id)
+        if (index > -1) {
+          mockData.value[index].status = 'rejected'
+          mockData.value[index].enterpriseConfirmed = false
+        }
+        
+        ElMessage.success('已拒绝合作（测试数据）')
         loadCooperationList()
       } catch (error) {
         console.error('拒绝合作失败:', error)
