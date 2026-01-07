@@ -79,9 +79,63 @@
                 :status="getProgressStatus(projectDetail.progress)"
               />
             </el-descriptions-item>
-            <el-descriptions-item label="开始时间">{{ projectDetail.startTime }}</el-descriptions-item>
-            <el-descriptions-item label="结束时间">{{ projectDetail.endTime }}</el-descriptions-item>
+            <el-descriptions-item label="开始时间">{{ projectDetail.startTime || projectDetail.start_time }}</el-descriptions-item>
+            <el-descriptions-item label="结束时间">{{ projectDetail.endTime || projectDetail.end_time }}</el-descriptions-item>
+            <el-descriptions-item label="项目难度">
+              <el-tag :type="getDifficultyTag(projectDetail.difficulty)">
+                {{ projectDetail.difficulty || '-' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="项目时长">{{ projectDetail.duration ? `${projectDetail.duration}周` : '-' }}</el-descriptions-item>
+            <el-descriptions-item label="学分">{{ projectDetail.credits ? `${projectDetail.credits}分` : '-' }}</el-descriptions-item>
+            <el-descriptions-item label="预计人数">{{ projectDetail.capacity ? `${projectDetail.capacity}人` : '-' }}</el-descriptions-item>
           </el-descriptions>
+        </el-card>
+
+        <!-- 技能要求 -->
+        <el-card class="section-card" shadow="never" v-if="projectDetail.skills && projectDetail.skills.length > 0">
+          <template #header>
+            <div class="section-header">
+              <el-icon><Star /></el-icon>
+              <span>技能要求</span>
+            </div>
+          </template>
+          <div class="skills-content">
+            <el-tag
+              v-for="(skill, index) in projectDetail.skills"
+              :key="index"
+              type="info"
+              style="margin-right: 8px; margin-bottom: 8px;"
+            >
+              {{ skill }}
+            </el-tag>
+          </div>
+        </el-card>
+
+        <!-- 项目内容 -->
+        <el-card class="section-card" shadow="never" v-if="projectDetail.content && projectDetail.content.length > 0">
+          <template #header>
+            <div class="section-header">
+              <el-icon><List /></el-icon>
+              <span>项目内容</span>
+            </div>
+          </template>
+          <ul class="content-list">
+            <li v-for="(item, index) in projectDetail.content" :key="index">{{ item }}</li>
+          </ul>
+        </el-card>
+
+        <!-- 预期收益 -->
+        <el-card class="section-card" shadow="never" v-if="projectDetail.gains && projectDetail.gains.length > 0">
+          <template #header>
+            <div class="section-header">
+              <el-icon><Trophy /></el-icon>
+              <span>预期收益</span>
+            </div>
+          </template>
+          <ul class="content-list">
+            <li v-for="(item, index) in projectDetail.gains" :key="index">{{ item }}</li>
+          </ul>
         </el-card>
 
         <!-- 项目描述 -->
@@ -166,8 +220,8 @@
             </div>
           </template>
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="创建时间">{{ projectDetail.createTime }}</el-descriptions-item>
-            <el-descriptions-item label="更新时间">{{ projectDetail.updateTime || '暂无更新' }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ projectDetail.createTime || projectDetail.created_at }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ projectDetail.updateTime || projectDetail.updated_at || '暂无更新' }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
       </div>
@@ -364,7 +418,10 @@ import {
   Clock,
   Edit,
   Delete,
-  TrendCharts
+  TrendCharts,
+  Star,
+  List,
+  Trophy
 } from '@element-plus/icons-vue'
 import { cooperationApi } from '@/api'
 import { getValidToken, getUserInfoFromToken } from '@/utils/auth'
@@ -726,13 +783,21 @@ const getStatusName = (status) => {
   const map = {
     ongoing: '进行中',
     completed: '已完成',
-    paused: '已暂停'
+    paused: '已暂停',
+    '进行中': '进行中',
+    '已完成': '已完成',
+    '已结束': '已结束'
   }
   return map[status] || status
 }
 
 // 获取学校名称
 const getSchoolName = (value) => {
+  // 支持对象格式：{ id, name, email, phone }
+  if (value && typeof value === 'object' && value.name) {
+    return value.name
+  }
+  // 支持旧的字符串格式
   const map = {
     tsinghua: '清华大学',
     pku: '北京大学',
@@ -741,6 +806,16 @@ const getSchoolName = (value) => {
     zju: '浙江大学'
   }
   return map[value] || value
+}
+
+// 获取难度标签
+const getDifficultyTag = (difficulty) => {
+  const map = {
+    '初级': 'success',
+    '中级': 'warning',
+    '高级': 'danger'
+  }
+  return map[difficulty] || 'info'
 }
 
 // 获取类型标签
@@ -932,6 +1007,23 @@ onMounted(() => {
       line-height: 1.8;
       color: #333;
       white-space: pre-wrap;
+    }
+
+    .skills-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .content-list {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 2;
+
+      li {
+        margin-bottom: 8px;
+        color: #333;
+      }
     }
   }
   

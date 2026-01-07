@@ -47,11 +47,13 @@
             <el-option label="人才培养" value="talent" />
           </el-select>
         </el-col>
-        <el-col :span="4" :offset="6">
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            新建合作
-          </el-button>
+        <el-col :span="10">
+          <div class="button-group">
+            <el-button type="primary" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新建合作
+            </el-button>
+          </div>
         </el-col>
       </el-row>
     </el-card>
@@ -59,25 +61,39 @@
     <!-- 合作列表 -->
     <el-card shadow="hover">
       <el-table :data="cooperationList" v-loading="loading" stripe>
-        <el-table-column prop="enterpriseName" label="企业名称" width="200" />
+        <el-table-column prop="enterprise.name" label="企业名称" min-width="180" />
+        <el-table-column prop="projectName" label="合作项目" min-width="200" show-overflow-tooltip />
         <el-table-column prop="type" label="合作类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag :type="getTypeTag(row.type)" size="small">{{ row.type }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="projectName" label="合作项目" width="200" />
-        <el-table-column prop="startTime" label="开始时间" width="180" />
-        <el-table-column prop="endTime" label="结束时间" width="180" />
-        <el-table-column prop="status" label="合作状态" width="120">
+        <el-table-column prop="status" label="合作状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <el-tag :type="getStatusTag(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="studentCount" label="参与学生数" width="120" align="center" />
+        <el-table-column prop="students" label="通过人数" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag type="success" size="small">{{ row.students || 0 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="待审核" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getPendingTag(row)" size="small">
+              {{ getPendingCount(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="capacity" label="容量" width="90" align="center">
+          <template #default="{ row }">
+            {{ row.capacity || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
+            <el-button type="success" link size="small" @click="handleReviewApplications(row)">审核报名</el-button>
             <el-button type="primary" link size="small" @click="handleView(row)">查看详情</el-button>
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -106,7 +122,21 @@
     >
       <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px">
         <el-form-item label="企业名称" prop="enterpriseName">
-          <el-input v-model="formData.enterpriseName" placeholder="请输入企业名称" />
+          <el-select
+            v-model="formData.enterpriseName"
+            placeholder="请选择企业名称"
+            filterable
+            style="width: 100%"
+            :loading="enterpriseListLoading"
+            @visible-change="handleEnterpriseSelectVisible"
+          >
+            <el-option
+              v-for="enterprise in enterpriseList"
+              :key="enterprise.id"
+              :label="enterprise.name"
+              :value="enterprise.name"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="合作类型" prop="type">
           <el-select v-model="formData.type" placeholder="请选择合作类型" style="width: 100%">
@@ -162,10 +192,8 @@
       v-loading="detailLoading"
     >
       <el-descriptions :column="2" border v-if="currentCooperation">
-        <el-descriptions-item label="企业名称">{{ currentCooperation.enterpriseName }}</el-descriptions-item>
-        <el-descriptions-item label="合作类型">
-          <el-tag :type="getTypeTag(currentCooperation.type)">{{ getTypeText(currentCooperation.type) }}</el-tag>
-        </el-descriptions-item>
+        <el-descriptions-item label="企业名称">{{ getEnterpriseName(currentCooperation.enterprise) }}</el-descriptions-item>
+        <el-descriptions-item label="合作类型">{{ currentCooperation.type }}</el-descriptions-item>
         <el-descriptions-item label="合作项目">{{ currentCooperation.projectName }}</el-descriptions-item>
         <el-descriptions-item label="合作状态">
           <el-tag :type="getStatusTag(currentCooperation.status)">{{ getStatusText(currentCooperation.status) }}</el-tag>
@@ -178,6 +206,14 @@
         <el-descriptions-item label="项目描述" :span="2">
           <div class="description-content">{{ currentCooperation.description }}</div>
         </el-descriptions-item>
+        <el-descriptions-item label="企业邮箱" v-if="currentCooperation.enterprise?.email">
+          {{ currentCooperation.enterprise.email }}
+        </el-descriptions-item>
+        <el-descriptions-item label="企业电话" v-if="currentCooperation.enterprise?.phone">
+          {{ currentCooperation.enterprise.phone }}
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ currentCooperation.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ currentCooperation.updateTime }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -185,9 +221,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { Search, Plus, OfficeBuilding, Loading, CircleCheck } from '@element-plus/icons-vue'
 import { cooperationApiUniversity } from '@/api/university'
+import { userApi } from '@/api'
+
+const router = useRouter()
 
 const searchKeyword = ref('')
 const filterStatus = ref('')
@@ -208,6 +248,10 @@ const pagination = ref({
 const cooperationList = ref([])
 
 const currentCooperation = ref(null)
+
+// 企业列表数据
+const enterpriseList = ref([])
+const enterpriseListLoading = ref(false)
 
 const formData = ref({
   enterpriseName: '',
@@ -230,10 +274,10 @@ const formRules = {
 }
 
 const stats = ref([
-  { title: '合作企业', value: '28', icon: 'OfficeBuilding', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { title: '进行中', value: '15', icon: 'Loading', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { title: '参与学生', value: '856', icon: 'User', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
-  { title: '已完成项目', value: '13', icon: 'CircleCheck', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }
+  { title: '合作企业', value: '0', icon: 'OfficeBuilding', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { title: '进行中', value: '0', icon: 'Loading', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { title: '参与学生', value: '0', icon: 'User', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+  { title: '已完成项目', value: '0', icon: 'CircleCheck', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }
 ])
 
 const getTypeTag = (type) => {
@@ -278,6 +322,46 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const getEnterpriseName = (value) => {
+  // 支持对象格式：{ id, name, email, phone }
+  if (value && typeof value === 'object' && value.name) {
+    return value.name
+  }
+  // 兼容旧的字符串格式
+  return value || '-'
+}
+
+// 计算待审核人数
+const getPendingCount = (row) => {
+  const enrolled = row.enrolledCount || 0
+  const approved = row.students || 0
+  return Math.max(0, enrolled - approved)
+}
+
+// 获取待审核的标签类型
+const getPendingTag = (row) => {
+  const pending = getPendingCount(row)
+  if (pending === 0) return 'info'
+  if (pending > 0 && pending <= 5) return 'warning' // 少量待审核
+  return 'danger' // 大量待审核
+}
+
+// 计算剩余名额
+const getRemainingCount = (capacity, students) => {
+  if (!capacity) return 0
+  const remaining = capacity - (students || 0)
+  return remaining > 0 ? remaining : 0
+}
+
+// 获取剩余名额的标签类型
+const getRemainingTag = (capacity, students) => {
+  if (!capacity) return 'info'
+  const remaining = capacity - (students || 0)
+  if (remaining <= 0) return 'danger' // 已满员
+  if (remaining < capacity * 0.2) return 'warning' // 即将满员
+  return 'success' // 名额充足
+}
+
 const loadCooperationList = async () => {
   loading.value = true
   try {
@@ -300,13 +384,57 @@ const loadCooperationList = async () => {
     console.log('校企合作列表:', result)
 
     const data = result.data?.data || result.data || result
-    cooperationList.value = data.list || []
+    const list = data.list || []
     pagination.value.total = data.total || 0
+
+    // 为每个项目获取详情，包含 enrolledCount、students、capacity 等字段
+    if (list.length > 0) {
+      loading.value = true
+      const detailPromises = list.map(async (item) => {
+        try {
+          const cooperationId = item.id || item.cooperationId || item.projectId
+          if (cooperationId) {
+            const detailResult = await cooperationApiUniversity.getDetail(cooperationId)
+            return detailResult.data || item
+          }
+          return item
+        } catch (error) {
+          console.warn('获取项目详情失败:', item.id, error)
+          return item
+        }
+      })
+
+      cooperationList.value = await Promise.all(detailPromises)
+      console.log('📋 完整列表数据:', cooperationList.value)
+    } else {
+      cooperationList.value = list
+    }
   } catch (error) {
     console.error('加载校企合作列表失败:', error)
     ElMessage.error('加载校企合作列表失败')
   } finally {
     loading.value = false
+  }
+}
+
+const loadStatistics = async () => {
+  try {
+    const result = await cooperationApiUniversity.getStatistics()
+    console.log('📥 校企合作统计数据:', result)
+
+    if (result && result.data) {
+      const data = result.data
+      // 更新统计数据
+      stats.value[0].value = data.totalEnterpriseCount || 0
+      stats.value[1].value = data.ongoingProjectCount || 0
+      stats.value[2].value = data.totalStudentCount || 0
+      stats.value[3].value = data.completedProjectCount || 0
+
+      console.log('✅ 统计数据更新完成:', stats.value)
+    }
+  } catch (error) {
+    console.error('❌ 加载统计数据失败:', error)
+    // 失败时保持默认值，不影响页面显示
   }
 }
 
@@ -331,17 +459,40 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
+const handleReviewApplications = (row) => {
+  const cooperationId = row.id || row.cooperationId || row.projectId
+  if (!cooperationId) {
+    ElMessage.error('无法获取合作项目ID')
+    return
+  }
+  router.push(`/cooperation-review/${cooperationId}`)
+}
+
 const handleView = async (row) => {
   detailLoading.value = true
   detailDialogVisible.value = true
   try {
-    const result = await cooperationApiUniversity.getDetail(row.id)
-    console.log('校企合作详情:', result)
+    // 尝试多种可能的 ID 字段
+    const cooperationId = row.id || row.cooperationId || row.projectId
+    if (!cooperationId) {
+      ElMessage.error('无法获取合作项目ID')
+      return
+    }
 
-    const data = result.data?.data || result.data || result
-    currentCooperation.value = data
+    console.log('🔵 开始获取校企合作详情, ID:', cooperationId)
+    const result = await cooperationApiUniversity.getDetail(cooperationId)
+    console.log('📥 校企合作详情响应:', result)
+
+    // 处理响应数据
+    if (result && result.data) {
+      currentCooperation.value = result.data
+      console.log('✅ 校企合作详情加载成功:', result.data)
+    } else {
+      console.warn('⚠️ 响应数据格式异常:', result)
+      ElMessage.warning('数据格式异常，请联系管理员')
+    }
   } catch (error) {
-    console.error('加载校企合作详情失败:', error)
+    console.error('❌ 加载校企合作详情失败:', error)
     ElMessage.error('加载校企合作详情失败')
   } finally {
     detailLoading.value = false
@@ -351,7 +502,7 @@ const handleView = async (row) => {
 const handleEdit = (row) => {
   dialogTitle.value = '编辑合作'
   formData.value = {
-    enterpriseName: row.enterpriseName,
+    enterpriseName: getEnterpriseName(row.enterprise),
     type: row.type,
     projectName: row.projectName,
     description: row.description,
@@ -365,7 +516,7 @@ const handleEdit = (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除与"${row.enterpriseName}"的合作吗？`, '提示', {
+  ElMessageBox.confirm(`确定要删除与"${getEnterpriseName(row.enterprise)}"的合作吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -399,7 +550,34 @@ const handlePageChange = (page) => {
 
 onMounted(() => {
   loadCooperationList()
+  loadStatistics()
 })
+
+// 获取企业列表
+const loadEnterpriseList = async () => {
+  if (enterpriseList.value.length > 0) {
+    return // 已加载过，不再重复请求
+  }
+  enterpriseListLoading.value = true
+  try {
+    const result = await userApi.getEnterpriseList()
+    console.log('企业列表:', result)
+    const data = result.data?.data || result.data || result
+    enterpriseList.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('获取企业列表失败:', error)
+    ElMessage.error('获取企业列表失败')
+  } finally {
+    enterpriseListLoading.value = false
+  }
+}
+
+// 下拉框显示时加载企业列表
+const handleEnterpriseSelectVisible = (visible) => {
+  if (visible && enterpriseList.value.length === 0) {
+    loadEnterpriseList()
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -444,6 +622,12 @@ onMounted(() => {
 
   .toolbar-card {
     margin-bottom: 20px;
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
   }
 
   .pagination-container {

@@ -209,6 +209,13 @@ export const cooperationApiUniversity = {
     console.log('🌐 请求地址: /api/university/cooperation/list')
     return request.get('/university/cooperation/list', { params })
   },
+
+  // 获取统计数据
+  getStatistics: () => {
+    console.log('🔵 [高校端真实API] 获取校企合作统计')
+    console.log('🌐 请求地址: /api/university/cooperation/statistics')
+    return request.get('/university/cooperation/statistics')
+  },
   
   // 创建
   create: (data) => {
@@ -233,6 +240,20 @@ export const cooperationApiUniversity = {
     console.log('🔵 [高校端真实API] 获取校企合作详情:', id)
     console.log('🌐 请求地址: /api/university/cooperation/:id')
     return request.get(`/university/cooperation/${id}`)
+  },
+
+  // 获取待审核报名列表
+  getPendingApplications: (cooperationId) => {
+    console.log('🔵 [高校端真实API] 获取待审核报名列表:', cooperationId)
+    console.log('🌐 请求地址: /api/university/cooperation/:cooperationId/applications/pending')
+    return request.get(`/university/cooperation/${cooperationId}/applications/pending`)
+  },
+
+  // 审核报名
+  reviewApplication: (data) => {
+    console.log('🔵 [高校端真实API] 审核报名:', data)
+    console.log('🌐 请求地址: /api/university/cooperation/applications/review')
+    return request.post('/university/cooperation/applications/review', data)
   }
 }
 

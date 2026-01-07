@@ -134,13 +134,42 @@
                 class="register-form"
               >
                 <el-form-item :prop="appStore.isEnterprise ? 'companyName' : 'universityName'">
-                  <el-input
-                    v-model="registerForm.companyName"
-                    :placeholder="appStore.isEnterprise ? '请输入企业名称' : '请输入高校名称'"
-                    size="large"
-                    prefix-icon="OfficeBuilding"
-                    clearable
-                  />
+                  <template v-if="appStore.isEnterprise">
+                    <el-select
+                      v-model="registerForm.companyName"
+                      placeholder="请选择企业名称"
+                      size="large"
+                      filterable
+                      style="width: 100%"
+                      :loading="enterpriseListLoading"
+                      @visible-change="handleEnterpriseSelectVisible"
+                    >
+                      <el-option
+                        v-for="enterprise in enterpriseList"
+                        :key="enterprise.id"
+                        :label="enterprise.name"
+                        :value="enterprise.name"
+                      />
+                    </el-select>
+                  </template>
+                  <template v-else>
+                    <el-select
+                      v-model="registerForm.universityName"
+                      placeholder="请选择高校名称"
+                      size="large"
+                      filterable
+                      style="width: 100%"
+                      :loading="universityListLoading"
+                      @visible-change="handleUniversitySelectVisible"
+                    >
+                      <el-option
+                        v-for="university in universityList"
+                        :key="university.id"
+                        :label="university.name"
+                        :value="university.name"
+                      />
+                    </el-select>
+                  </template>
                 </el-form-item>
                 <el-form-item prop="username">
                   <el-input
@@ -265,12 +294,71 @@ const loginForm = reactive({
 
 const registerForm = reactive({
   companyName: '',
+  universityName: '',
   username: '',
   email: '',
   phone: '',
   password: '',
   confirmPassword: ''
 })
+
+// 企业列表相关
+const enterpriseList = ref([])
+const enterpriseListLoading = ref(false)
+
+// 获取企业列表
+const loadEnterpriseList = async () => {
+  if (enterpriseList.value.length > 0) {
+    return // 已加载过，不再重复请求
+  }
+  enterpriseListLoading.value = true
+  try {
+    const result = await userApi.getEnterpriseList()
+    console.log('企业列表:', result)
+    const data = result.data?.data || result.data || result
+    enterpriseList.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('获取企业列表失败:', error)
+  } finally {
+    enterpriseListLoading.value = false
+  }
+}
+
+// 企业选择框显示时加载列表
+const handleEnterpriseSelectVisible = (visible) => {
+  if (visible && enterpriseList.value.length === 0) {
+    loadEnterpriseList()
+  }
+}
+
+// 高校列表相关
+const universityList = ref([])
+const universityListLoading = ref(false)
+
+// 获取高校列表
+const loadUniversityList = async () => {
+  if (universityList.value.length > 0) {
+    return // 已加载过，不再重复请求
+  }
+  universityListLoading.value = true
+  try {
+    const result = await userApi.getUniversityList()
+    console.log('高校列表:', result)
+    const data = result.data?.data || result.data || result
+    universityList.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('获取高校列表失败:', error)
+  } finally {
+    universityListLoading.value = false
+  }
+}
+
+// 高校选择框显示时加载列表
+const handleUniversitySelectVisible = (visible) => {
+  if (visible && universityList.value.length === 0) {
+    loadUniversityList()
+  }
+}
 
 // 计算属性：是否可以发送验证码
 const canSendCode = computed(() => {
@@ -603,6 +691,7 @@ const handleRegister = async () => {
         // 清空注册表单
         Object.assign(registerForm, {
           companyName: '',
+          universityName: '',
           username: '',
           email: '',
           phone: '',
@@ -626,6 +715,7 @@ const switchToEnterprise = () => {
   loginForm.username = ''
   loginForm.password = ''
   registerForm.companyName = ''
+  registerForm.universityName = ''
   registerForm.username = ''
   registerForm.email = ''
   registerForm.phone = ''
@@ -639,6 +729,7 @@ const switchToUniversity = () => {
   loginForm.username = ''
   loginForm.password = ''
   registerForm.companyName = ''
+  registerForm.universityName = ''
   registerForm.username = ''
   registerForm.email = ''
   registerForm.phone = ''

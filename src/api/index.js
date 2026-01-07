@@ -36,6 +36,18 @@ export const userApi = {
   // 获取用户信息
   getProfile: () => {
     return request.get(API_ENDPOINTS.USER.ME)
+  },
+
+  // 获取企业列表
+  getEnterpriseList: (params) => {
+    console.log('📋 获取企业列表:', params)
+    return request.get('/common/enterprise/list', { params })
+  },
+
+  // 获取高校列表
+  getUniversityList: (params) => {
+    console.log('📋 获取高校列表:', params)
+    return request.get('/common/university/list', { params })
   }
 }
 
