@@ -43,12 +43,22 @@ export const API_ENDPOINTS = {
     CREATE: '/cooperation/create',
     UPDATE: '/cooperation/update',
     DELETE: '/cooperation/delete',
+    // 企业侧「合作项目管理」（已存在）
     ENTERPRISE_LIST: '/enterprise/cooperation-projects',  // GET /enterprise/cooperation-projects
     ENTERPRISE_CREATE: '/enterprise/cooperation-projects',  // POST /enterprise/cooperation-projects
     ENTERPRISE_UPDATE: '/enterprise/cooperation-projects',  // PUT /enterprise/cooperation-projects/{id}
     ENTERPRISE_DELETE: '/enterprise/cooperation-projects',  // DELETE /enterprise/cooperation-projects/{id}
     ENTERPRISE_PROGRESS: '/enterprise/cooperation-projects',  // PUT /enterprise/cooperation-projects/{id}/progress
-    DETAIL: '/enterprise/cooperation-projects'  // GET /enterprise/cooperation-projects/{id}
+    DETAIL: '/enterprise/cooperation-projects',  // GET /enterprise/cooperation-projects/{id}
+
+    // 企业侧「校企合作管理」（与高校端 /university/cooperation 对应的一套关系维度接口）
+    ENTERPRISE_RELATION_LIST: '/enterprise/cooperations',           // GET  /enterprise/cooperations
+    ENTERPRISE_RELATION_CREATE: '/enterprise/cooperations',        // POST /enterprise/cooperations
+    ENTERPRISE_RELATION_UPDATE: '/enterprise/cooperations',        // PUT  /enterprise/cooperations/{id}
+    ENTERPRISE_RELATION_DELETE: '/enterprise/cooperations',        // DELETE /enterprise/cooperations/{id}
+    ENTERPRISE_RELATION_DETAIL: '/enterprise/cooperations',        // GET  /enterprise/cooperations/{id}
+    ENTERPRISE_RELATION_CONFIRM: '/enterprise/cooperations',       // POST /enterprise/cooperations/{id}/confirm
+    ENTERPRISE_RELATION_REJECT: '/enterprise/cooperations'         // POST /enterprise/cooperations/{id}/reject
   },
   
   // 人才需求相关
@@ -62,7 +72,12 @@ export const API_ENDPOINTS = {
     ENTERPRISE_UPDATE: '/enterprise/talent-demands',  // PUT /enterprise/talent-demands/{id}
     ENTERPRISE_DELETE: '/enterprise/talent-demands',  // DELETE /enterprise/talent-demands/{id}
     ENTERPRISE_CLOSE: '/enterprise/talent-demands',  // PUT /enterprise/talent-demands/{id}/close
-    DETAIL: '/enterprise/talent-demands'  // GET /enterprise/talent-demands/{id}
+    DETAIL: '/enterprise/talent-demands',  // GET /enterprise/talent-demands/{id}
+    // 人才需求申请相关
+    APPLICATIONS_LIST: '/enterprise/talent-demands',  // GET /enterprise/talent-demands/{id}/applications
+    APPLICATION_DETAIL: '/enterprise/talent-demands',  // GET /enterprise/talent-demands/{recruitmentId}/applications/{applicationId}
+    APPLICATION_APPROVE: '/enterprise/talent-demands',  // POST /enterprise/talent-demands/{recruitmentId}/applications/{applicationId}/approve
+    APPLICATION_REJECT: '/enterprise/talent-demands'  // POST /enterprise/talent-demands/{recruitmentId}/applications/{applicationId}/reject
   },
   
   // 技能画像相关

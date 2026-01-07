@@ -26,6 +26,12 @@ const routes = [
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: '数据看板', icon: 'DataBoard', requiresAuth: true, mode: 'enterprise' }
       },
+      {
+        path: 'enterprise-cooperation',
+        name: 'EnterpriseCooperation',
+        component: () => import('@/views/EnterpriseCooperation/index.vue'),
+        meta: { title: '校企合作管理', icon: 'Connection', requiresAuth: true, mode: 'enterprise' }
+      },
       // 高校端路由
       {
         path: 'dashboard-university',
@@ -43,13 +49,13 @@ const routes = [
         path: 'proposal-approval',
         name: 'ProposalApproval',
         component: () => import('@/views/ProposalApproval/index.vue'),
-        meta: { title: '共建课程/专业提案审批', icon: 'EditPen', requiresAuth: true, mode: 'university' }
+        meta: { title: '企业项目合作', icon: 'EditPen', requiresAuth: true, mode: 'university' }
       },
       {
         path: 'teaching-feedback',
         name: 'TeachingFeedback',
         component: () => import('@/views/TeachingFeedback/index.vue'),
-        meta: { title: '数据化教学反馈面板', icon: 'DataAnalysis', requiresAuth: true, mode: 'university' }
+        meta: { title: '教学评价', icon: 'DataAnalysis', requiresAuth: true, mode: 'university' }
       },
       {
         path: 'cooperation-university',
@@ -109,13 +115,13 @@ const routes = [
         path: 'training',
         name: 'Training',
         component: () => import('@/views/Training/index.vue'),
-        meta: { title: '培训计划管理', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
+        meta: { title: '培训课程管理', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
       },
       {
         path: 'training/:id',
         name: 'TrainingDetail',
         component: () => import('@/views/TrainingDetail.vue'),
-        meta: { title: '培训计划详情', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
+        meta: { title: '培训课程详情', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
       },
       {
         path: 'skill-profile/:id',

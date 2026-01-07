@@ -109,7 +109,7 @@
                 <el-form-item>
                   <div class="form-options">
                     <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-                    <el-link type="primary" :underline="false" @click="showForgotPasswordDialog = true">忘记密码？</el-link>
+                    <el-link type="primary" :underline="false">忘记密码？</el-link>
                   </div>
                 </el-form-item>
                 <el-form-item>
@@ -189,28 +189,6 @@
                     clearable
                   />
                 </el-form-item>
-                <el-form-item prop="verificationCode">
-                  <div class="verification-input">
-                    <el-input
-                      v-model="registerForm.verificationCode"
-                      placeholder="请输入邮箱验证码"
-                      size="large"
-                      prefix-icon="Key"
-                      clearable
-                      style="flex: 1"
-                    />
-                    <el-button
-                      type="primary"
-                      size="large"
-                      :disabled="!canSendCode || codeSending"
-                      :loading="codeSending"
-                      @click="handleSendVerificationCode"
-                      style="margin-left: 10px; width: 120px;"
-                    >
-                      {{ codeButtonText }}
-                    </el-button>
-                  </div>
-                </el-form-item>
                 <el-form-item prop="phone">
                   <el-input
                     v-model="registerForm.phone"
@@ -269,91 +247,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 忘记密码模态框 -->
-    <el-dialog
-      v-model="showForgotPasswordDialog"
-      title="找回密码"
-      width="450px"
-      :close-on-click-modal="false"
-      @close="resetForgotPasswordForm"
-    >
-      <el-form
-        ref="forgotPasswordFormRef"
-        :model="forgotPasswordForm"
-        :rules="forgotPasswordRules"
-        label-width="0"
-        class="forgot-password-form"
-      >
-        <el-form-item prop="email">
-          <el-input
-            v-model="forgotPasswordForm.email"
-            placeholder="请输入注册时使用的邮箱"
-            size="large"
-            prefix-icon="Message"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item prop="resetCode">
-          <div class="verification-input">
-            <el-input
-              v-model="forgotPasswordForm.resetCode"
-              placeholder="请输入邮箱验证码"
-              size="large"
-              prefix-icon="Key"
-              clearable
-              style="flex: 1"
-            />
-            <el-button
-              type="primary"
-              size="large"
-              :disabled="!canSendResetCode || resetCodeSending"
-              :loading="resetCodeSending"
-              @click="handleSendResetCode"
-              style="margin-left: 10px; width: 120px;"
-            >
-              {{ resetCodeButtonText }}
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item prop="newPassword">
-          <el-input
-            v-model="forgotPasswordForm.newPassword"
-            type="password"
-            placeholder="请输入新密码（至少8位）"
-            size="large"
-            prefix-icon="Lock"
-            show-password
-            clearable
-          />
-        </el-form-item>
-        <el-form-item prop="confirmPassword">
-          <el-input
-            v-model="forgotPasswordForm.confirmPassword"
-            type="password"
-            placeholder="请再次输入新密码"
-            size="large"
-            prefix-icon="Lock"
-            show-password
-            clearable
-            @keyup.enter="handleResetPassword"
-          />
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="showForgotPasswordDialog = false">取消</el-button>
-          <el-button
-            type="primary"
-            :loading="resetPasswordLoading"
-            @click="handleResetPassword"
-          >
-            {{ resetPasswordLoading ? '重置中...' : '重置密码' }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -406,27 +299,6 @@ const registerForm = reactive({
   email: '',
   phone: '',
   password: '',
-  confirmPassword: '',
-  verificationCode: ''
-})
-
-// 验证码相关状态
-const codeSending = ref(false)
-const codeCountdown = ref(0)
-const codeButtonText = ref('获取验证码')
-
-// 忘记密码相关状态
-const showForgotPasswordDialog = ref(false)
-const forgotPasswordFormRef = ref(null)
-const resetCodeSending = ref(false)
-const resetPasswordLoading = ref(false)
-const resetCodeCountdown = ref(0)
-const resetCodeButtonText = ref('获取验证码')
-
-const forgotPasswordForm = reactive({
-  email: '',
-  resetCode: '',
-  newPassword: '',
   confirmPassword: ''
 })
 
@@ -695,37 +567,6 @@ const registerRules = {
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
-  ],
-  verificationCode: [
-    { required: true, message: '请输入邮箱验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
-  ]
-}
-
-const validateResetPassword = (rule, value, callback) => {
-  if (value !== forgotPasswordForm.newPassword) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-const forgotPasswordRules = {
-  email: [
-    { required: true, message: '请输入注册时使用的邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-  ],
-  resetCode: [
-    { required: true, message: '请输入邮箱验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
-  ],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
-    { validator: validateResetPassword, trigger: 'blur' }
   ]
 }
 
@@ -855,8 +696,7 @@ const handleRegister = async () => {
           email: '',
           phone: '',
           password: '',
-          confirmPassword: '',
-          verificationCode: ''
+          confirmPassword: ''
         })
         registerFormRef.value?.clearValidate()
         
@@ -1099,12 +939,6 @@ const switchToUniversity = () => {
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
           }
         }
-
-        .verification-input {
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
         
         :deep(.el-input__wrapper) {
           border-radius: 8px;
@@ -1121,87 +955,6 @@ const switchToUniversity = () => {
         }
       }
     }
-  }
-
-  // 忘记密码模态框样式
-  :deep(.el-dialog) {
-    border-radius: 12px;
-    overflow: hidden;
-    
-    .el-dialog__header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      margin: 0;
-      
-      .el-dialog__title {
-        color: white;
-        font-weight: 600;
-        font-size: 18px;
-      }
-    }
-    
-    .el-dialog__body {
-      padding: 30px 20px 20px;
-      
-      .forgot-password-form {
-        .verification-input {
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-      }
-      
-      .dialog-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-      }
-    }
-    
-    .el-dialog__footer {
-      padding: 15px 20px 20px;
-      border-top: 1px solid #f0f0f0;
-    }
-  }
-}
-
-// 响应式设计
-@media (max-width: 968px) {
-  .login-container {
-    .login-wrapper {
-      flex-direction: column;
-    }
-    
-    .login-info {
-      max-width: 100%;
-      padding: 20px;
-      
-      .info-content {
-        .logo-section {
-          margin-bottom: 30px;
-          
-          .system-name {
-            font-size: 36px;
-          }
-        }
-      }
-    }
-    
-    .login-form-wrapper {
-      max-width: 100%;
-      width: 100%;
-      
-      .login-box {
-        padding: 30px 20px;
-      }
-    }
-  }
-  
-  // 忘记密码模态框响应式
-  :deep(.el-dialog) {
-    width: 90% !important;
-    max-width: 400px;
   }
 }
 

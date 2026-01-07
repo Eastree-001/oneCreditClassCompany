@@ -1,90 +1,97 @@
 <template>
   <div class="dashboard">
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6" v-for="stat in stats" :key="stat.title">
-        <el-card class="stat-card card-hover" shadow="hover" v-loading="statsLoading">
-          <div class="stat-content">
-            <div class="stat-icon" :style="{ background: stat.color }">
-              <el-icon :size="24"><component :is="stat.icon" /></el-icon>
+    <el-row :gutter="20">
+      <!-- 左侧内容区域 -->
+      <el-col :xs="24" :sm="24" :md="16">
+        <!-- 统计卡片 -->
+        <el-row :gutter="20" class="stats-row">
+          <el-col :xs="24" :sm="12" :md="6" v-for="stat in stats" :key="stat.title">
+            <el-card class="stat-card card-hover" shadow="hover" v-loading="statsLoading">
+              <div class="stat-content">
+                <div class="stat-icon" :style="{ background: stat.color }">
+                  <el-icon :size="24"><component :is="stat.icon" /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ statsLoading ? '...' : stat.value }}</div>
+                  <div class="stat-title">{{ stat.title }}</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <!-- 图表区域 -->
+        <el-row :gutter="20" class="charts-row">
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>课程匹配趋势</span>
+                </div>
+              </template>
+              <div ref="matchTrendChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>岗位画像分布</span>
+                </div>
+              </template>
+              <div ref="profileChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20" class="charts-row">
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>培训课程完成情况</span>
+                </div>
+              </template>
+              <div ref="trainingChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="12">
+            <el-card class="chart-card" shadow="hover">
+              <template #header>
+                <div class="card-header">
+                  <span>合作高校统计</span>
+                </div>
+              </template>
+              <div ref="cooperationChartRef" class="chart-container"></div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-col>
+
+      <!-- 右侧最近活动 -->
+      <el-col :xs="24" :sm="24" :md="8">
+        <el-card class="activity-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span>最近活动</span>
             </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statsLoading ? '...' : stat.value }}</div>
-              <div class="stat-title">{{ stat.title }}</div>
-            </div>
-          </div>
+          </template>
+          <el-timeline>
+            <el-timeline-item
+              v-for="activity in activities"
+              :key="activity.id"
+              :timestamp="activity.time"
+              placement="top"
+            >
+              <el-card>
+                <h4>{{ activity.title }}</h4>
+                <p>{{ activity.content }}</p>
+              </el-card>
+            </el-timeline-item>
+          </el-timeline>
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 图表区域 -->
-    <el-row :gutter="20" class="charts-row">
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>课程匹配趋势</span>
-            </div>
-          </template>
-          <div ref="matchTrendChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>岗位画像分布</span>
-            </div>
-          </template>
-          <div ref="profileChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" class="charts-row">
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>培训计划完成情况</span>
-            </div>
-          </template>
-          <div ref="trainingChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>合作高校统计</span>
-            </div>
-          </template>
-          <div ref="cooperationChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 最近活动 -->
-    <el-card class="activity-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span>最近活动</span>
-        </div>
-      </template>
-      <el-timeline>
-        <el-timeline-item
-          v-for="activity in activities"
-          :key="activity.id"
-          :timestamp="activity.time"
-          placement="top"
-        >
-          <el-card>
-            <h4>{{ activity.title }}</h4>
-            <p>{{ activity.content }}</p>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
-    </el-card>
   </div>
 </template>
 
@@ -122,6 +129,17 @@ const stats = ref([
     ]
   },
   { 
+    title: '培训课程', 
+    value: '0', 
+    icon: 'Calendar', 
+    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
+    key: 'trainings',
+    possibleKeys: [
+      'trainings', 'trainingCount', 'training_count', 'planCount', 'plan_count',
+      'plans', 'plan_count', 'programs', 'program_count', 'courses', 'course_count'
+    ]
+  },
+  { 
     title: '合作项目', 
     value: '0', 
     icon: 'Document', 
@@ -130,17 +148,6 @@ const stats = ref([
     possibleKeys: [
       'cooperations', 'cooperationCount', 'cooperation_count', 'projectCount', 'project_count',
       'projects', 'project_count', 'partners', 'partner_count', 'collaborations', 'collaboration_count'
-    ]
-  },
-  { 
-    title: '培训计划', 
-    value: '0', 
-    icon: 'Calendar', 
-    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
-    key: 'trainings',
-    possibleKeys: [
-      'trainings', 'trainingCount', 'training_count', 'planCount', 'plan_count',
-      'plans', 'plan_count', 'programs', 'program_count', 'courses', 'course_count'
     ]
   }
 ])
@@ -201,8 +208,8 @@ const activities = ref([
   },
   {
     id: 4,
-    title: '培训计划完成',
-    content: '新员工入职培训计划已完成，培训周期缩短至2周',
+    title: '培训课程完成',
+    content: '新员工入职培训课程已完成，培训周期缩短至2周',
     time: '2024-01-12 16:45'
   }
 ])
@@ -805,14 +812,14 @@ const updateChartsWithData = (chartData) => {
   }
 }
 
-// 获取培训计划完成情况数据
+// 获取培训课程完成情况数据
 const fetchTrainingStatusData = async () => {
   try {
-    console.log('=== 开始获取培训计划完成情况数据 ===')
+    console.log('=== 开始获取培训课程完成情况数据 ===')
     console.log('当前token:', localStorage.getItem('token') ? '存在' : '不存在')
     
     const result = await dashboardApi.getTrainingStatus()
-    console.log('=== 培训计划完成情况API原始响应 ===')
+    console.log('=== 培训课程完成情况API原始响应 ===')
     console.log('完整响应:', result)
     
     // 处理API响应格式：{ code: 200, message: "Success", data: { completed: 0, ongoing: 0, pending: 1 }, errors: null }
@@ -826,7 +833,7 @@ const fetchTrainingStatusData = async () => {
       trainingData = result
     }
     
-    console.log('=== 处理后的培训计划完成情况数据 ===')
+    console.log('=== 处理后的培训课程完成情况数据 ===')
     console.log('培训数据:', trainingData)
     
     if (trainingData && typeof trainingData === 'object') {
@@ -848,9 +855,9 @@ const fetchTrainingStatusData = async () => {
       console.log('图表数据:', chartData)
       console.log('对应关系: [已完成, 进行中, 待开始]')
       
-      // 更新培训计划完成情况图表
+      // 更新培训课程完成情况图表
       if (trainingChart) {
-        console.log('=== 更新培训计划完成情况图表 ===')
+        console.log('=== 更新培训课程完成情况图表 ===')
         
         trainingChart.setOption({
           series: [{
@@ -866,7 +873,7 @@ const fetchTrainingStatusData = async () => {
           }]
         })
         
-        console.log('✓ 培训计划完成情况图表更新成功')
+        console.log('✓ 培训课程完成情况图表更新成功')
       } else {
         console.error('✗ trainingChart 未初始化')
       }
@@ -875,7 +882,7 @@ const fetchTrainingStatusData = async () => {
       throw new Error('服务器返回的培训数据格式不正确')
     }
   } catch (error) {
-    console.error('=== 获取培训计划完成情况数据失败 ===')
+    console.error('=== 获取培训课程完成情况数据失败 ===')
     console.error('错误信息:', error.message)
     console.error('错误堆栈:', error.stack)
     
@@ -888,7 +895,7 @@ const fetchTrainingStatusData = async () => {
     }
     
     // 显示友好的错误信息
-    console.log('使用默认数据显示培训计划完成情况图表')
+    console.log('使用默认数据显示培训课程完成情况图表')
     
     // 使用默认数据初始化图表
     if (trainingChart) {
@@ -1301,8 +1308,8 @@ onMounted(async () => {
     console.log('开始获取岗位画像分布数据...')
     fetchProfileDistributionData()
     
-    // 获取培训计划完成情况数据
-    console.log('开始获取培训计划完成情况数据...')
+    // 获取培训课程完成情况数据
+    console.log('开始获取培训课程完成情况数据...')
     fetchTrainingStatusData()
     
     // 获取合作高校统计数据
@@ -1381,10 +1388,48 @@ onMounted(async () => {
   }
   
   .activity-card {
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    
     .card-header {
       font-weight: 600;
       font-size: 16px;
       color: var(--text-primary);
+    }
+    
+    .el-timeline {
+      margin-top: 10px;
+      
+      .el-timeline-item {
+        :deep(.el-card) {
+          margin-bottom: 10px;
+          
+          h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+          
+          p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+          }
+        }
+      }
+    }
+  }
+  
+  // 小屏幕下取消 sticky 定位
+  @media (max-width: 768px) {
+    .activity-card {
+      position: static;
+      max-height: none;
     }
   }
 }

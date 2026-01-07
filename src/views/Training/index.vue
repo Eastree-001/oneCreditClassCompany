@@ -3,7 +3,7 @@
     <el-card shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>培训计划管理</span>
+          <span>培训课程管理</span>
           <el-button type="primary" :icon="Plus" @click="handleAdd">创建计划</el-button>
         </div>
       </template>
@@ -203,7 +203,7 @@
     <!-- 查看详情对话框 -->
     <el-dialog
       v-model="viewDialogVisible"
-      title="培训计划详情"
+      title="培训课程详情"
       width="900px"
     >
       <el-descriptions :column="2" border>
@@ -314,7 +314,7 @@ const formRules = {
 
 const availableCourses = ref([])
 
-// 培训计划列表数据
+// 培训课程列表数据
 const planList = ref([])
 
 // 获取可选课程列表
@@ -419,9 +419,9 @@ const fetchAvailableCourses = async () => {
   }
 }
 
-// 验证token并获取培训计划列表
+// 验证token并获取培训课程列表
 const fetchTrainingPlans = async () => {
-  console.log('=== 开始获取真实培训计划列表 ===')
+  console.log('=== 开始获取真实培训课程列表 ===')
   
   try {
     // 1. 验证token
@@ -447,8 +447,8 @@ const fetchTrainingPlans = async () => {
       return
     }
     
-    // 3. 发起API请求获取真实培训计划列表
-    console.log('🔄 开始获取真实培训计划数据...')
+    // 3. 发起API请求获取真实培训课程列表
+    console.log('🔄 开始获取真实培训课程数据...')
     loading.value = true
     
     const params = {
@@ -463,7 +463,7 @@ const fetchTrainingPlans = async () => {
     
     const response = await trainingApi.getEnterpriseList(params)
     
-    console.log('📥 培训计划API响应:', response)
+    console.log('📥 培训课程API响应:', response)
     
     // 4. 处理真实响应数据
     if (response && (response.data || response.code === 200)) {
@@ -494,7 +494,7 @@ const fetchTrainingPlans = async () => {
       
       // 如果没有数据，提示用户
       if (plans.length === 0) {
-        ElMessage.info('暂无培训计划数据，请先创建')
+        ElMessage.info('暂无培训课程数据，请先创建')
       }
       
     } else {
@@ -505,16 +505,16 @@ const fetchTrainingPlans = async () => {
     }
     
   } catch (error) {
-    console.error('❌ 获取真实培训计划列表失败:', error)
+    console.error('❌ 获取真实培训课程列表失败:', error)
     
     // 详细的错误处理
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限访问培训计划数据')
+      ElMessage.error('没有权限访问培训课程数据')
     } else if (error.response?.status === 404) {
-      ElMessage.error('培训计划API接口不存在 (404)，请联系管理员')
+      ElMessage.error('培训课程API接口不存在 (404)，请联系管理员')
       planList.value = []
       pagination.total = 0
     } else if (error.response?.status === 500) {
@@ -527,7 +527,7 @@ const fetchTrainingPlans = async () => {
       planList.value = []
       pagination.total = 0
     } else {
-      ElMessage.error(`获取培训计划失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`获取培训课程失败: ${error.message || '未知错误'}`)
       planList.value = []
       pagination.total = 0
     }
@@ -537,8 +537,8 @@ const fetchTrainingPlans = async () => {
 }
 
 onMounted(() => {
-  console.log('培训计划页面挂载，开始获取培训计划数据')
-  // 并行获取培训计划列表和可选课程列表
+  console.log('培训课程页面挂载，开始获取培训课程数据')
+  // 并行获取培训课程列表和可选课程列表
   Promise.all([
     fetchTrainingPlans(),
     fetchAvailableCourses()
@@ -621,13 +621,13 @@ const viewDetail = (row) => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该培训计划吗？删除后不可恢复。', '删除确认', {
+    await ElMessageBox.confirm('确定要删除该培训课程吗？删除后不可恢复。', '删除确认', {
       confirmButtonText: '确定删除',
       cancelButtonText: '取消',
       type: 'warning'
     })
     
-    console.log('=== 开始删除培训计划 ===')
+    console.log('=== 开始删除培训课程 ===')
     console.log('删除目标:', row)
     
     // 验证token
@@ -638,19 +638,19 @@ const handleDelete = async (row) => {
       return
     }
     
-    console.log('🗑️ 删除培训计划，调用真实API')
-    console.log('📤 删除培训计划ID:', row.id)
+    console.log('🗑️ 删除培训课程，调用真实API')
+    console.log('📤 删除培训课程ID:', row.id)
     console.log('🌐 请求地址: /api/enterprise/training-plans/{id}')
     
     // 调用真实删除API
     const response = await trainingApi.deleteEnterprise(row.id)
     
-    console.log('📥 删除培训计划API响应:', response)
+    console.log('📥 删除培训课程API响应:', response)
     
     // 处理删除响应
     if (response && (response.data || response.code === 200 || response.success)) {
-      console.log('✅ 培训计划删除成功')
-      ElMessage.success('培训计划删除成功')
+      console.log('✅ 培训课程删除成功')
+      ElMessage.success('培训课程删除成功')
       
       // 从本地列表中移除
       const index = planList.value.findIndex(item => item.id === row.id)
@@ -676,13 +676,13 @@ const handleDelete = async (row) => {
       return
     }
     
-    console.error('❌ 删除培训计划失败:', error)
+    console.error('❌ 删除培训课程失败:', error)
     
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限删除培训计划')
+      ElMessage.error('没有权限删除培训课程')
     } else if (error.response?.status === 404) {
       ElMessage.error('删除API接口不存在 (404)，请联系管理员')
     } else if (error.response?.status === 500) {
@@ -690,7 +690,7 @@ const handleDelete = async (row) => {
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       ElMessage.error('网络连接失败，请检查网络连接')
     } else {
-      ElMessage.error(`删除培训计划失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`删除培训课程失败: ${error.message || '未知错误'}`)
     }
   }
 }
@@ -702,7 +702,7 @@ const handleSubmit = async () => {
     const valid = await formRef.value.validate()
     if (!valid) return
     
-    console.log('=== 开始提交培训计划 ===')
+    console.log('=== 开始提交培训课程 ===')
     console.log('编辑模式:', isEdit.value)
     console.log('表单数据:', formData)
     
@@ -729,19 +729,19 @@ const handleSubmit = async () => {
     
     if (isEdit.value) {
       // 编辑模式 - 调用真实API
-      console.log('📝 编辑培训计划，调用真实API')
+      console.log('📝 编辑培训课程，调用真实API')
       
       console.log('📤 更新请求数据:', requestData)
       console.log('🌐 请求地址: /api/enterprise/training-plans/{id}')
       
       const response = await trainingApi.updateEnterprise(formData.id, requestData)
       
-      console.log('📥 更新培训计划API响应:', response)
+      console.log('📥 更新培训课程API响应:', response)
       
       // 处理真实响应
       if (response && (response.data || response.code === 200)) {
-        console.log('✅ 培训计划更新成功')
-        ElMessage.success('培训计划更新成功')
+        console.log('✅ 培训课程更新成功')
+        ElMessage.success('培训课程更新成功')
         
         // 更新本地列表数据
         const index = planList.value.findIndex(item => item.id === formData.id)
@@ -764,19 +764,19 @@ const handleSubmit = async () => {
       }
     } else {
       // 新增模式 - 调用真实API
-      console.log('➕ 创建新培训计划，调用真实API')
+      console.log('➕ 创建新培训课程，调用真实API')
       
       console.log('📤 请求数据:', requestData)
       console.log('🌐 请求地址: /api/enterprise/training-plans')
       
       const response = await trainingApi.createEnterprise(requestData)
       
-      console.log('📥 创建培训计划API响应:', response)
+      console.log('📥 创建培训课程API响应:', response)
       
       // 处理真实响应
       if (response && (response.data || response.code === 200 || response.id)) {
-        console.log('✅ 培训计划创建成功')
-        ElMessage.success('培训计划创建成功')
+        console.log('✅ 培训课程创建成功')
+        ElMessage.success('培训课程创建成功')
         
         // 关闭对话框并重置表单
         dialogVisible.value = false
@@ -795,22 +795,22 @@ const handleSubmit = async () => {
     }
     
   } catch (error) {
-    console.error('❌ 提交培训计划失败:', error)
+    console.error('❌ 提交培训课程失败:', error)
     
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限创建培训计划')
+      ElMessage.error('没有权限创建培训课程')
     } else if (error.response?.status === 404) {
-      ElMessage.error('培训计划API接口不存在 (404)，请联系管理员')
+      ElMessage.error('培训课程API接口不存在 (404)，请联系管理员')
     } else if (error.response?.status === 500) {
       ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
       console.error('🔥 500错误详情:', error.response?.data)
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       ElMessage.error('网络连接失败，请检查网络连接')
     } else {
-      ElMessage.error(`创建培训计划失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`创建培训课程失败: ${error.message || '未知错误'}`)
     }
   } finally {
     submitLoading.value = false

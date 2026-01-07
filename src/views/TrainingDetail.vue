@@ -5,7 +5,7 @@
         <div class="card-header">
           <div class="header-left">
             <el-button :icon="ArrowLeft" @click="goBack">返回列表</el-button>
-            <span style="margin-left: 15px">培训计划详情</span>
+            <span style="margin-left: 15px">培训课程详情</span>
           </div>
           <div class="header-right">
             <el-button 
@@ -186,7 +186,7 @@
     <!-- 编辑对话框 -->
     <el-dialog
       v-model="editDialogVisible"
-      title="编辑培训计划"
+      title="编辑培训课程"
       width="800px"
       @close="handleEditDialogClose"
     >
@@ -414,16 +414,16 @@ const progressFormRules = {
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
-// 获取培训计划详情
+// 获取培训课程详情
 const fetchTrainingDetail = async () => {
   const trainingId = route.params.id
   if (!trainingId) {
-    error.value = '缺少培训计划ID'
+    error.value = '缺少培训课程ID'
     return
   }
 
-  console.log('=== 开始获取培训计划详情 ===')
-  console.log('培训计划ID:', trainingId)
+  console.log('=== 开始获取培训课程详情 ===')
+  console.log('培训课程ID:', trainingId)
   
   try {
     // 1. 验证token
@@ -449,8 +449,8 @@ const fetchTrainingDetail = async () => {
       return
     }
     
-    // 3. 发起API请求获取培训计划详情
-    console.log('🔄 开始获取培训计划详情数据...')
+    // 3. 发起API请求获取培训课程详情
+    console.log('🔄 开始获取培训课程详情数据...')
     loading.value = true
     error.value = ''
     
@@ -458,7 +458,7 @@ const fetchTrainingDetail = async () => {
     
     const response = await trainingApi.getDetail(trainingId)
     
-    console.log('📥 培训计划详情API响应:', response)
+    console.log('📥 培训课程详情API响应:', response)
     
     // 4. 处理真实响应数据
     if (response && (response.data || response.code === 200)) {
@@ -469,7 +469,7 @@ const fetchTrainingDetail = async () => {
       
       trainingDetail.value = detail
       
-      console.log('✅ 培训计划详情数据处理完成:', detail)
+      console.log('✅ 培训课程详情数据处理完成:', detail)
       
     } else {
       console.warn('⚠️ API响应数据格式异常:', response)
@@ -477,23 +477,23 @@ const fetchTrainingDetail = async () => {
     }
     
   } catch (error) {
-    console.error('❌ 获取培训计划详情失败:', error)
+    console.error('❌ 获取培训课程详情失败:', error)
     
     // 详细的错误处理
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      error.value = '没有权限访问该培训计划详情'
+      error.value = '没有权限访问该培训课程详情'
     } else if (error.response?.status === 404) {
-      error.value = '培训计划不存在或API接口不存在 (404)'
+      error.value = '培训课程不存在或API接口不存在 (404)'
     } else if (error.response?.status === 500) {
       error.value = '服务器内部错误，请稍后重试或联系管理员'
       console.error('🔥 500错误详情:', error.response?.data)
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       error.value = '网络连接失败，请检查网络连接'
     } else {
-      error.value = `获取培训计划详情失败: ${error.message || '未知错误'}`
+      error.value = `获取培训课程详情失败: ${error.message || '未知错误'}`
     }
   } finally {
     loading.value = false
@@ -653,7 +653,7 @@ const handleEditSubmit = async () => {
     const valid = await editFormRef.value.validate()
     if (!valid) return
     
-    console.log('=== 开始更新培训计划 ===')
+    console.log('=== 开始更新培训课程 ===')
     
     // 验证token
     const token = getValidToken()
@@ -700,14 +700,14 @@ const handleEditSubmit = async () => {
     
     const response = await trainingApi.updateEnterprise(trainingDetail.value.id, requestData)
     
-    console.log('📥 更新培训计划API响应:', response)
+    console.log('📥 更新培训课程API响应:', response)
     
     // 处理更新响应
     if (response && (response.data || response.code === 200)) {
-      console.log('✅ 培训计划更新成功')
-      ElMessage.success('培训计划更新成功')
+      console.log('✅ 培训课程更新成功')
+      ElMessage.success('培训课程更新成功')
       
-      // 重新获取最新的培训计划详情数据
+      // 重新获取最新的培训课程详情数据
       await fetchTrainingDetail()
       
       // 关闭对话框
@@ -722,21 +722,21 @@ const handleEditSubmit = async () => {
     }
     
   } catch (error) {
-    console.error('❌ 更新培训计划失败:', error)
+    console.error('❌ 更新培训课程失败:', error)
     
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限更新培训计划')
+      ElMessage.error('没有权限更新培训课程')
     } else if (error.response?.status === 404) {
-      ElMessage.error('培训计划API接口不存在 (404)，请联系管理员')
+      ElMessage.error('培训课程API接口不存在 (404)，请联系管理员')
     } else if (error.response?.status === 500) {
       ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       ElMessage.error('网络连接失败，请检查网络连接')
     } else {
-      ElMessage.error(`更新培训计划失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`更新培训课程失败: ${error.message || '未知错误'}`)
     }
   } finally {
     editSubmitLoading.value = false
@@ -748,13 +748,13 @@ const handleEditDialogClose = () => {
   editFormRef.value?.clearValidate()
 }
 
-// 删除培训计划
+// 删除培训课程
 const handleDelete = async () => {
   if (!trainingDetail.value) return
   
   try {
     await ElMessageBox.confirm(
-      `确定要删除培训计划"${trainingDetail.value.name}"吗？删除后不可恢复。`,
+      `确定要删除培训课程"${trainingDetail.value.name}"吗？删除后不可恢复。`,
       '删除确认',
       {
         confirmButtonText: '确定删除',
@@ -763,7 +763,7 @@ const handleDelete = async () => {
       }
     )
     
-    console.log('=== 开始删除培训计划 ===')
+    console.log('=== 开始删除培训课程 ===')
     
     // 验证token
     const token = getValidToken()
@@ -773,19 +773,19 @@ const handleDelete = async () => {
       return
     }
     
-    console.log('🗑️ 删除培训计划，调用真实API')
-    console.log('📤 删除培训计划ID:', trainingDetail.value.id)
+    console.log('🗑️ 删除培训课程，调用真实API')
+    console.log('📤 删除培训课程ID:', trainingDetail.value.id)
     console.log('🌐 请求地址: /api/enterprise/training-plans/{id}')
     
     // 调用真实删除API
     const response = await trainingApi.deleteEnterprise(trainingDetail.value.id)
     
-    console.log('📥 删除培训计划API响应:', response)
+    console.log('📥 删除培训课程API响应:', response)
     
     // 处理删除响应
     if (response && (response.data || response.code === 200 || response.success)) {
-      console.log('✅ 培训计划删除成功')
-      ElMessage.success('培训计划删除成功')
+      console.log('✅ 培训课程删除成功')
+      ElMessage.success('培训课程删除成功')
       
       // 返回列表页
       router.push('/training')
@@ -803,13 +803,13 @@ const handleDelete = async () => {
       return
     }
     
-    console.error('❌ 删除培训计划失败:', error)
+    console.error('❌ 删除培训课程失败:', error)
     
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录获取访问权限')
       router.push('/login')
     } else if (error.response?.status === 403) {
-      ElMessage.error('没有权限删除培训计划')
+      ElMessage.error('没有权限删除培训课程')
     } else if (error.response?.status === 404) {
       ElMessage.error('删除API接口不存在 (404)，请联系管理员')
     } else if (error.response?.status === 500) {
@@ -817,7 +817,7 @@ const handleDelete = async () => {
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       ElMessage.error('网络连接失败，请检查网络连接')
     } else {
-      ElMessage.error(`删除培训计划失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`删除培训课程失败: ${error.message || '未知错误'}`)
     }
   }
 }
@@ -874,7 +874,7 @@ const handleProgressSubmit = async () => {
       console.log('✅ 培训进度更新成功')
       ElMessage.success('培训进度更新成功')
       
-      // 重新获取最新的培训计划详情数据
+      // 重新获取最新的培训课程详情数据
       await fetchTrainingDetail()
       
       // 关闭对话框
@@ -897,7 +897,7 @@ const handleProgressSubmit = async () => {
     } else if (error.response?.status === 403) {
       ElMessage.error('没有权限更新培训进度')
     } else if (error.response?.status === 404) {
-      ElMessage.error('培训计划或API接口不存在 (404)，请联系管理员')
+      ElMessage.error('培训课程或API接口不存在 (404)，请联系管理员')
     } else if (error.response?.status === 500) {
       ElMessage.error('服务器内部错误，请稍后重试或联系管理员')
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
@@ -1092,8 +1092,8 @@ const getCourseStatusName = (status) => {
 }
 
 onMounted(() => {
-  console.log('培训计划详情页面挂载，开始获取详情数据')
-  // 并行获取培训计划详情和可选课程列表
+  console.log('培训课程详情页面挂载，开始获取详情数据')
+  // 并行获取培训课程详情和可选课程列表
   Promise.all([
     fetchTrainingDetail(),
     fetchAvailableCourses()

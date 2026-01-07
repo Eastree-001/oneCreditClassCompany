@@ -4,8 +4,12 @@
     <el-aside :width="isCollapse ? '64px' : '240px'" class="sidebar">
       <div class="logo">
         <transition name="fade">
-          <span v-if="!isCollapse" class="logo-text">一学分课堂</span>
-          <span v-else class="logo-icon">一</span>
+          <span v-if="!isCollapse" class="logo-text">
+            一学分课堂 · {{ modeLabel }}
+          </span>
+          <span v-else class="logo-icon">
+            {{ modeShort }}
+          </span>
         </transition>
       </div>
       <el-menu
@@ -87,6 +91,10 @@ const userStore = useUserStore()
 const userStoreUniversity = useUserStoreUniversity()
 const isCollapse = ref(false)
 
+// 当前端标识（企业端 / 高校端）
+const modeLabel = computed(() => (appStore.isEnterprise ? '企业端' : '高校端'))
+const modeShort = computed(() => (appStore.isEnterprise ? '企' : '校'))
+
 // 根据当前模式选择对应的store
 const currentUserStore = computed(() => {
   return appStore.isEnterprise ? userStore : userStoreUniversity
@@ -95,17 +103,18 @@ const currentUserStore = computed(() => {
 const enterpriseMenuList = [
   { path: '/dashboard', title: '数据看板', icon: 'DataBoard' },
   { path: '/skill-profile', title: '岗位技能画像', icon: 'User' },
-  { path: '/course-match', title: '课程匹配', icon: 'Connection' },
-  { path: '/talent-demand', title: '人才需求发布', icon: 'Promotion' },
+  { path: '/course-match', title: '课程匹配', icon: 'Connection' }, 
+  { path: '/training', title: '培训课程管理', icon: 'Calendar' },
   { path: '/cooperation', title: '合作项目管理', icon: 'Document' },
-  { path: '/training', title: '培训计划管理', icon: 'Calendar' }
+  { path: '/talent-demand', title: '人才需求发布', icon: 'Promotion' },
+  { path: '/enterprise-cooperation', title: '校企合作管理', icon: 'Connection' }
 ]
 
 const universityMenuList = [
   { path: '/dashboard-university', title: '数据看板', icon: 'DataBoard' },
   { path: '/course-slice', title: '课程切片与技能映射', icon: 'Document' },
-  { path: '/proposal-approval', title: '共建课程/专业提案审批', icon: 'EditPen' },
-  { path: '/teaching-feedback', title: '数据化教学反馈面板', icon: 'DataAnalysis' },
+  { path: '/proposal-approval', title: '企业项目合作', icon: 'EditPen' },
+  { path: '/teaching-feedback', title: '教学评价', icon: 'DataAnalysis' },
   { path: '/cooperation-university', title: '校企合作管理', icon: 'Connection' }
 ]
 
