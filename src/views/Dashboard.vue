@@ -49,7 +49,7 @@
             <el-card class="chart-card" shadow="hover">
               <template #header>
                 <div class="card-header">
-                  <span>培训课程完成情况</span>
+                  <span>AI课程计划完成情况</span>
                 </div>
               </template>
               <div ref="trainingChartRef" class="chart-container"></div>
@@ -109,8 +109,11 @@ const stats = ref([
     icon: 'User', 
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
     key: 'skillProfiles',
-    // 扩展所有可能的字段名
+    // 扩展所有可能的字段名，包含后端实际返回的驼峰格式
     possibleKeys: [
+      // 后端实际返回的字段
+      'profileCount',
+      // 其他可能的字段名
       'skillProfiles', 'skill_profiles', 'skillProfileCount', 'skill_profile_count', 'skillCount', 'skill_count',
       'positions', 'position_count', 'jobProfiles', 'job_profiles', 'profiles', 'profile_count',
       'skill_position', 'skill_job', 'position_skill', 'job_skill', 'skillData', 'skill_data'
@@ -123,6 +126,9 @@ const stats = ref([
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
     key: 'courseMatches',
     possibleKeys: [
+      // 后端实际返回的字段
+      'matchCount',
+      // 其他可能的字段名
       'courseMatches', 'course_matches', 'courseMatchCount', 'course_match_count', 'courseCount', 'course_count',
       'matches', 'match_count', 'courseMatch', 'course_match', 'matching', 'matching_count',
       'course_matching', 'courseData', 'course_data', 'matchedCourses', 'matched_courses'
@@ -135,6 +141,9 @@ const stats = ref([
     color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
     key: 'trainings',
     possibleKeys: [
+      // 后端实际返回的字段
+      'planCount',
+      // 其他可能的字段名
       'trainings', 'trainingCount', 'training_count', 'planCount', 'plan_count',
       'plans', 'plan_count', 'programs', 'program_count', 'courses', 'course_count'
     ]
@@ -146,6 +155,9 @@ const stats = ref([
     color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
     key: 'cooperations',
     possibleKeys: [
+      // 后端实际返回的字段
+      'projectCount',
+      // 其他可能的字段名
       'cooperations', 'cooperationCount', 'cooperation_count', 'projectCount', 'project_count',
       'projects', 'project_count', 'partners', 'partner_count', 'collaborations', 'collaboration_count'
     ]
@@ -311,7 +323,7 @@ const initProfileChart = () => {
   profileChart.setOption(option)
 }
 
-const initTrainingChart = () => {
+const initAiCoursePlanChart = () => {
   trainingChart = echarts.init(trainingChartRef.value)
   const option = {
     tooltip: {
@@ -817,14 +829,14 @@ const fetchTrainingStatusData = async () => {
   try {
     console.log('=== 开始获取培训课程完成情况数据 ===')
     console.log('当前token:', localStorage.getItem('token') ? '存在' : '不存在')
-    
+
     const result = await dashboardApi.getTrainingStatus()
     console.log('=== 培训课程完成情况API原始响应 ===')
     console.log('完整响应:', result)
-    
-    // 处理API响应格式：{ code: 200, message: "Success", data: { completed: 0, ongoing: 0, pending: 1 }, errors: null }
+
+    // 处理API响应格式：{ code: 200, message: "Success", data: [...], errors: null }
     let trainingData = null
-    
+
     if (result && result.data) {
       console.log('使用data字段中的培训数据')
       trainingData = result.data
@@ -832,60 +844,106 @@ const fetchTrainingStatusData = async () => {
       console.log('直接使用响应数据')
       trainingData = result
     }
-    
+
     console.log('=== 处理后的培训课程完成情况数据 ===')
     console.log('培训数据:', trainingData)
-    
-    if (trainingData && typeof trainingData === 'object') {
+
+    if (trainingData && Array.isArray(trainingData)) {
       console.log('=== 培训数据字段分析 ===')
-      console.log('所有可用字段:', Object.keys(trainingData))
-      Object.keys(trainingData).forEach(key => {
-        const value = trainingData[key]
-        console.log(`  ${key}: ${typeof value} = ${value}`)
+      console.log('数据类型: 数组')
+      console.log('数据长度:', trainingData.length)
+      trainingData.forEach((item, index) => {
+        console.log(`  [${index}] ${item.profileName}:`)
+        console.log(`    - profileId: ${item.profileId}`)
+        console.log(`    - totalCourses: ${item.totalCourses}`)
+        console.log(`    - addedToPlanCount: ${item.addedToPlanCount}`)
+        console.log(`    - approvedCount: ${item.approvedCount}`)
+        console.log(`    - progressRate: ${item.progressRate}`)
+        console.log(`    - highMatchCount: ${item.highMatchCount}`)
+        console.log(`    - mediumMatchCount: ${item.mediumMatchCount}`)
+        console.log(`    - lowMatchCount: ${item.lowMatchCount}`)
       })
-      
-      // 根据API返回的数据格式转换为图表需要的格式
-      const chartData = [
-        trainingData.completed || 0, // 已完成
-        trainingData.ongoing || 0,   // 进行中
-        trainingData.pending || 0    // 待开始
-      ]
-      
+
+      // 将数组数据转换为适合柱状图显示的格式
+      // 使用岗位画像名称作为X轴,显示每个岗位的计划完成情况
+      const xAxisData = trainingData.map(item => item.profileName || '未知岗位')
+      const seriesData = trainingData.map(item => item.progressRate || 0)
+
       console.log('=== 转换后的图表数据 ===')
-      console.log('图表数据:', chartData)
-      console.log('对应关系: [已完成, 进行中, 待开始]')
-      
-      // 更新培训课程完成情况图表
+      console.log('X轴数据(岗位名称):', xAxisData)
+      console.log('系列数据(完成率):', seriesData)
+
+      // 更新AI课程计划完成情况图表
       if (trainingChart) {
-        console.log('=== 更新培训课程完成情况图表 ===')
-        
+        console.log('=== 更新AI课程计划完成情况图表 ===')
+
         trainingChart.setOption({
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            },
+            formatter: (params) => {
+              const dataIndex = params[0].dataIndex
+              const item = trainingData[dataIndex]
+              return `
+                <div style="padding: 8px;">
+                  <div style="font-weight: bold; margin-bottom: 8px;">${item.profileName}</div>
+                  <div>课程总数: ${item.totalCourses}</div>
+                  <div>已加入计划: ${item.addedToPlanCount}</div>
+                  <div>已审批: ${item.approvedCount}</div>
+                  <div>完成率: ${item.progressRate}%</div>
+                  <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                    匹配度: 高(${item.highMatchCount}) 中(${item.mediumMatchCount}) 低(${item.lowMatchCount})
+                  </div>
+                </div>
+              `
+            }
+          },
+          xAxis: {
+            type: 'category',
+            data: xAxisData,
+            axisLabel: {
+              interval: 0,
+              rotate: xAxisData.some(name => name.length > 4) ? 30 : 0
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '完成率(%)',
+            max: 100
+          },
           series: [{
-            name: '计划数量',
+            name: '完成率',
             type: 'bar',
-            data: chartData,
+            data: seriesData,
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: '#43e97b' },
                 { offset: 1, color: '#38f9d7' }
               ])
+            },
+            label: {
+              show: true,
+              position: 'top',
+              formatter: '{c}%'
             }
           }]
         })
-        
-        console.log('✓ 培训课程完成情况图表更新成功')
+
+        console.log('✓ AI课程计划完成情况图表更新成功')
       } else {
         console.error('✗ trainingChart 未初始化')
       }
     } else {
-      console.error('✗ 培训数据格式无效:', trainingData)
-      throw new Error('服务器返回的培训数据格式不正确')
+      console.error('✗ AI课程计划数据格式无效:', trainingData)
+      throw new Error('服务器返回的培训数据格式不正确，期望数组格式')
     }
   } catch (error) {
     console.error('=== 获取培训课程完成情况数据失败 ===')
     console.error('错误信息:', error.message)
     console.error('错误堆栈:', error.stack)
-    
+
     if (error.response) {
       console.error('HTTP错误:', {
         status: error.response.status,
@@ -893,29 +951,54 @@ const fetchTrainingStatusData = async () => {
         data: error.response.data
       })
     }
-    
+
     // 显示友好的错误信息
-    console.log('使用默认数据显示培训课程完成情况图表')
-    
+    console.log('使用默认数据显示AI课程计划完成情况图表')
+
     // 使用默认数据初始化图表
     if (trainingChart) {
-      const defaultData = [5, 2, 1] // [已完成, 进行中, 待开始]
-      
+      const defaultXAxis = ['前端开发工程师', 'Java后端工程师', '全栈工程师']
+      const defaultSeries = [25, 0, 0] // 完成率
+
       trainingChart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: defaultXAxis,
+          axisLabel: {
+            interval: 0,
+            rotate: defaultXAxis.some(name => name.length > 4) ? 30 : 0
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '完成率(%)',
+          max: 100
+        },
         series: [{
-          name: '计划数量',
+          name: '完成率',
           type: 'bar',
-          data: defaultData,
+          data: defaultSeries,
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#43e97b' },
               { offset: 1, color: '#38f9d7' }
             ])
+          },
+          label: {
+            show: true,
+            position: 'top',
+            formatter: '{c}%'
           }
         }]
       })
-      
-      console.log('使用默认数据:', defaultData)
+
+      console.log('使用默认数据:', { xAxis: defaultXAxis, series: defaultSeries })
     }
   }
 }
@@ -1293,7 +1376,7 @@ onMounted(async () => {
     console.log('初始化图表...')
     initMatchTrendChart()
     initProfileChart()
-    initTrainingChart()
+    initAiCoursePlanChart()
     initCooperationChart()
     
     // 获取统计数据

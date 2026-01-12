@@ -240,7 +240,7 @@
             :key="index"
             style="margin-right: 8px; margin-bottom: 4px"
           >
-            {{ skill }}
+            {{ typeof skill === 'object' ? skill.name : skill }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="学历要求">{{ getEducationName(viewData.education) }}</el-descriptions-item>

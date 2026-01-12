@@ -93,19 +93,22 @@ export const API_ENDPOINTS = {
     DETAIL: '/enterprise/skill-profiles'  // GET /enterprise/skill-profiles/{id}
   },
   
-  // 培训相关
-  TRAINING: {
-    LIST: '/training/list',
-    CREATE: '/training/create',
-    UPDATE: '/training/update',
-    DELETE: '/training/delete',
-    ENTERPRISE_LIST: '/enterprise/training-plans',  // GET /enterprise/training-plans
-    ENTERPRISE_CREATE: '/enterprise/training-plans',  // POST /enterprise/training-plans
-    ENTERPRISE_UPDATE: '/enterprise/training-plans',  // PUT /enterprise/training-plans/{id}
-    ENTERPRISE_DELETE: '/enterprise/training-plans',  // DELETE /enterprise/training-plans/{id}
-    ENTERPRISE_PROGRESS: '/enterprise/training-plans',  // PUT /enterprise/training-plans/{id}/progress
-    ENTERPRISE_AVAILABLE_COURSES: '/enterprise/training-plans/available-courses',  // GET /enterprise/training-plans/available-courses
-    DETAIL: '/enterprise/training-plans'  // GET /enterprise/training-plans/{id}
+  // AI课程计划相关
+  AI_COURSE_PLAN: {
+    LIST: '/ai-course-plan/list',
+    CREATE: '/ai-course-plan/create',
+    UPDATE: '/ai-course-plan/update',
+    DELETE: '/ai-course-plan/delete',
+    ENTERPRISE_LIST: '/enterprise/ai-course-plans',  // GET /enterprise/ai-course-plans
+    ENTERPRISE_CREATE: '/enterprise/ai-course-plans',  // POST /enterprise/ai-course-plans
+    ENTERPRISE_UPDATE: '/enterprise/ai-course-plans',  // PUT /enterprise/ai-course-plans/{id}
+    ENTERPRISE_DELETE: '/enterprise/ai-course-plans',  // DELETE /enterprise/ai-course-plans/{id}
+    ENTERPRISE_PROGRESS: '/enterprise/ai-course-plans',  // PUT /enterprise/ai-course-plans/{id}/progress
+    ENTERPRISE_AVAILABLE_COURSES: '/enterprise/ai-course-plans/available-courses',  // GET /enterprise/ai-course-plans/available-courses
+    DETAIL: '/enterprise/ai-course-plans',  // GET /enterprise/ai-course-plans/{id}
+    // AI课程相关
+    AI_COURSES: '/enterprise/ai-courses',  // GET /enterprise/ai-courses
+    SELECT_UNIVERSITY: '/enterprise/ai-courses'  // POST /enterprise/ai-courses/:aiCourseId/select-university
   },
   
   // 课程匹配相关
@@ -114,10 +117,26 @@ export const API_ENDPOINTS = {
     HISTORY: '/course-match/history',
     PROFILES: '/enterprise/course-match/profiles',
     RESULTS: '/enterprise/course-match/results',
-    REFRESH: '/enterprise/course-match/refresh',
-    ANALYSIS: '/enterprise/course-match/analysis',
     SUGGESTIONS: '/enterprise/course-match/suggestions',
-    STATS: '/enterprise/course-match/stats'
+    STATS: '/enterprise/course-match/stats',
+    // AI 课程列表
+    AI_COURSES: '/enterprise/ai-courses',
+    // 生成AI课程
+    GENERATE_COURSE: '/enterprise/dify/generate-course',
+    // Coze智能体匹配课程
+    COZE_MATCH: '/enterprise/course-match/coze-match',
+    // 加入计划
+    ADD_TO_PLAN: '/enterprise/course-match/add-to-plan',
+    // 移除课程
+    REMOVE_FROM_PLAN: '/enterprise/course-match/remove-from-plan'
+  },
+
+  // 高校端AI课程审批相关
+  UNIVERSITY_AI_COURSE_AUDIT: {
+    PENDING: '/university/ai-courses-audit/pending',
+    LIST: '/university/ai-courses-audit/list',
+    DETAIL: '/university/ai-courses-audit',
+    APPROVE: '/university/ai-courses-audit'
   }
 }
 

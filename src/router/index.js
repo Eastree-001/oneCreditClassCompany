@@ -70,6 +70,18 @@ const routes = [
         meta: { title: '审核报名', icon: 'Connection', requiresAuth: true, mode: 'university' }
       },
       {
+        path: 'ai-course-audit',
+        name: 'AiCourseAudit',
+        component: () => import('@/views/AiCourseAudit/index.vue'),
+        meta: { title: 'AI课程审批', icon: 'DocumentChecked', requiresAuth: true, mode: 'university' }
+      },
+      {
+        path: 'ai-course-audit-detail',
+        name: 'AiCourseAuditDetail',
+        component: () => import('@/views/AiCourseAuditDetail.vue'),
+        meta: { title: 'AI课程审批详情', icon: 'DocumentChecked', requiresAuth: true, mode: 'university' }
+      },
+      {
         path: 'skill-profile',
         name: 'SkillProfile',
         component: () => import('@/views/SkillProfile/index.vue'),
@@ -112,16 +124,10 @@ const routes = [
         meta: { title: '合作项目详情', icon: 'Document', requiresAuth: true, mode: 'enterprise' }
       },
       {
-        path: 'training',
-        name: 'Training',
-        component: () => import('@/views/Training/index.vue'),
-        meta: { title: '培训课程管理', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
-      },
-      {
-        path: 'training/:id',
-        name: 'TrainingDetail',
-        component: () => import('@/views/TrainingDetail.vue'),
-        meta: { title: '培训课程详情', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
+        path: 'ai-course-plan',
+        name: 'AiCoursePlan',
+        component: () => import('@/views/AiCoursePlan/index.vue'),
+        meta: { title: 'AI课程计划管理', icon: 'Calendar', requiresAuth: true, mode: 'enterprise' }
       },
       {
         path: 'skill-profile/:id',

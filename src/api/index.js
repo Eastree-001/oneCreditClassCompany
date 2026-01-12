@@ -466,24 +466,34 @@ export const skillProfileApi = {
   getList: (params) => {
     return request.get(API_ENDPOINTS.SKILL_PROFILE.LIST, { params })
   },
-  
+
+  // 获取技能列表（用于下拉选择）
+  getSkillsList: () => {
+    console.log('=== 调用getSkillsList API ===')
+    console.log('端点:', '/enterprise/skill-profiles/skills')
+
+    const result = request.get('/enterprise/skill-profiles/skills')
+    console.log('技能列表API调用已发送，等待响应...')
+    return result
+  },
+
   // 获取企业技能画像列表（需要token验证）
   getEnterpriseList: (params) => {
     console.log('=== 调用getEnterpriseList API ===')
     console.log('端点:', API_ENDPOINTS.SKILL_PROFILE.ENTERPRISE_LIST)
     console.log('参数:', params)
-    
+
     const result = request.get(API_ENDPOINTS.SKILL_PROFILE.ENTERPRISE_LIST, { params })
     console.log('企业技能画像API调用已发送，等待响应...')
     return result
   },
-  
+
   // 获取单个岗位画像详情（需要token验证）
   getDetail: (id) => {
     console.log('=== 调用getDetail API ===')
     console.log('端点:', `${API_ENDPOINTS.SKILL_PROFILE.DETAIL}/${id}`)
     console.log('岗位画像ID:', id)
-    
+
     const result = request.get(`${API_ENDPOINTS.SKILL_PROFILE.DETAIL}/${id}`)
     console.log('岗位画像详情API调用已发送，等待响应...')
     return result
@@ -539,112 +549,124 @@ export const skillProfileApi = {
   }
 }
 
-// 培训相关 API
-export const trainingApi = {
-  // 获取培训列表
+// AI课程计划相关 API
+export const aiCoursePlanApi = {
+  // 获取AI课程计划列表
   getList: (params) => {
-    return request.get(API_ENDPOINTS.TRAINING.LIST, { params })
+    return request.get(API_ENDPOINTS.AI_COURSE_PLAN.LIST, { params })
   },
-  
-  // 获取企业培训课程列表（需要token验证）
+
+  // 获取企业AI课程计划列表（需要token验证）
   getEnterpriseList: (params) => {
     console.log('=== 调用getEnterpriseList API ===')
-    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_LIST)
+    console.log('端点:', API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_LIST)
     console.log('参数:', params)
-    
-    const result = request.get(API_ENDPOINTS.TRAINING.ENTERPRISE_LIST, { params })
-    console.log('企业培训课程API调用已发送，等待响应...')
+
+    const result = request.get(API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_LIST, { params })
+    console.log('企业AI课程计划API调用已发送，等待响应...')
     return result
   },
-  
+
   // 获取可选课程列表（需要token验证）
   getAvailableCourses: (params) => {
     console.log('=== 调用getAvailableCourses API ===')
-    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_AVAILABLE_COURSES)
+    console.log('端点:', API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_AVAILABLE_COURSES)
     console.log('参数:', params)
-    
-    const result = request.get(API_ENDPOINTS.TRAINING.ENTERPRISE_AVAILABLE_COURSES, { params })
+
+    const result = request.get(API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_AVAILABLE_COURSES, { params })
     console.log('可选课程API调用已发送，等待响应...')
     return result
   },
-  
-  // 获取单个培训课程详情（需要token验证）
+
+  // 获取单个AI课程计划详情（需要token验证）
   getDetail: (id) => {
     console.log('=== 调用getDetail API ===')
-    console.log('端点:', `${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
-    console.log('培训课程ID:', id)
-    
-    const result = request.get(`${API_ENDPOINTS.TRAINING.DETAIL}/${id}`)
-    console.log('培训课程详情API调用已发送，等待响应...')
+    console.log('端点:', `${API_ENDPOINTS.AI_COURSE_PLAN.DETAIL}/${id}`)
+    console.log('AI课程计划ID:', id)
+
+    const result = request.get(`${API_ENDPOINTS.AI_COURSE_PLAN.DETAIL}/${id}`)
+    console.log('AI课程计划详情API调用已发送，等待响应...')
     return result
   },
-  
-  // 创建企业培训课程（需要token验证）
+
+  // 创建企业AI课程计划（需要token验证）
   createEnterprise: (data) => {
     console.log('=== 调用createEnterprise API ===')
-    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE)
+    console.log('端点:', API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_CREATE)
     console.log('请求数据:', data)
-    
-    const result = request.post(API_ENDPOINTS.TRAINING.ENTERPRISE_CREATE, data)
-    console.log('企业培训课程创建API调用已发送，等待响应...')
+
+    const result = request.post(API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_CREATE, data)
+    console.log('企业AI课程计划创建API调用已发送，等待响应...')
     return result
   },
-  
-  // 更新企业培训课程（需要token验证）
+
+  // 更新企业AI课程计划（需要token验证）
   updateEnterprise: (id, data) => {
     console.log('=== 调用updateEnterprise API ===')
-    const url = `${API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE}/${id}`
+    const url = `${API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_UPDATE}/${id}`
     console.log('完整URL:', url)
-    console.log('端点:', API_ENDPOINTS.TRAINING.ENTERPRISE_UPDATE)
-    console.log('培训课程ID:', id)
+    console.log('端点:', API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_UPDATE)
+    console.log('AI课程计划ID:', id)
     console.log('更新数据:', data)
     console.log('课程数据详情:', {
       courses: data.courses,
       coursesType: typeof data.courses,
       coursesLength: data.courses ? data.courses.length : 0
     })
-    
+
     const result = request.put(url, data)
-    console.log('企业培训课程更新API调用已发送，等待响应...')
+    console.log('企业AI课程计划更新API调用已发送，等待响应...')
     return result
   },
-  
-  // 更新企业培训课程进度（需要token验证）
+
+  // 更新企业AI课程计划进度（需要token验证）
   updateProgress: (id, progressData) => {
     console.log('=== 调用updateProgress API ===')
-    console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`)
-    console.log('培训课程ID:', id)
+    console.log('端点:', `${API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_PROGRESS}/${id}/progress`)
+    console.log('AI课程计划ID:', id)
     console.log('进度数据:', progressData)
-    
-    const result = request.put(`${API_ENDPOINTS.TRAINING.ENTERPRISE_PROGRESS}/${id}/progress`, progressData)
-    console.log('企业培训课程进度更新API调用已发送，等待响应...')
+
+    const result = request.put(`${API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_PROGRESS}/${id}/progress`, progressData)
+    console.log('企业AI课程计划进度更新API调用已发送，等待响应...')
     return result
   },
-  
-  // 删除企业培训课程（需要token验证）
+
+  // 删除企业AI课程计划（需要token验证）
   deleteEnterprise: (id) => {
     console.log('=== 调用deleteEnterprise API ===')
-    console.log('端点:', `${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
-    console.log('培训课程ID:', id)
-    
-    const result = request.delete(`${API_ENDPOINTS.TRAINING.ENTERPRISE_DELETE}/${id}`)
-    console.log('企业培训课程删除API调用已发送，等待响应...')
+    console.log('端点:', `${API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_DELETE}/${id}`)
+    console.log('AI课程计划ID:', id)
+
+    const result = request.delete(`${API_ENDPOINTS.AI_COURSE_PLAN.ENTERPRISE_DELETE}/${id}`)
+    console.log('企业AI课程计划删除API调用已发送，等待响应...')
     return result
   },
-  
-  // 创建培训（普通版本）
+
+  // 创建AI课程计划（普通版本）
   create: (data) => {
-    return request.post(API_ENDPOINTS.TRAINING.CREATE, data)
+    return request.post(API_ENDPOINTS.AI_COURSE_PLAN.CREATE, data)
   },
-  
-  // 更新培训
+
+  // 更新AI课程计划
   update: (id, data) => {
-    return request.put(`${API_ENDPOINTS.TRAINING.UPDATE}/${id}`, data)
+    return request.put(`${API_ENDPOINTS.AI_COURSE_PLAN.UPDATE}/${id}`, data)
   },
-  
-  // 删除培训
+
+  // 删除AI课程计划
   delete: (id) => {
-    return request.delete(`${API_ENDPOINTS.TRAINING.DELETE}/${id}`)
+    return request.delete(`${API_ENDPOINTS.AI_COURSE_PLAN.DELETE}/${id}`)
+  },
+
+  // 选择高校审批课程
+  selectUniversity: (aiCourseId, data) => {
+    console.log('=== 调用selectUniversity API ===')
+    console.log('端点:', `${API_ENDPOINTS.AI_COURSE_PLAN.SELECT_UNIVERSITY}/${aiCourseId}/select-university`)
+    console.log('AI课程ID:', aiCourseId)
+    console.log('请求数据:', data)
+
+    const result = request.post(`${API_ENDPOINTS.AI_COURSE_PLAN.SELECT_UNIVERSITY}/${aiCourseId}/select-university`, data)
+    console.log('选择高校审批API调用已发送，等待响应...')
+    return result
   }
 }
 
@@ -654,75 +676,190 @@ export const courseMatchApi = {
   match: (data) => {
     return request.post(API_ENDPOINTS.COURSE_MATCH.MATCH, data)
   },
-  
+
   // 获取匹配历史
   getHistory: (params) => {
     return request.get(API_ENDPOINTS.COURSE_MATCH.HISTORY, { params })
   },
-  
+
   // 获取岗位画像列表
   getProfiles: (params) => {
     console.log('=== 调用getProfiles API ===')
     console.log('端点:', API_ENDPOINTS.COURSE_MATCH.PROFILES)
     console.log('参数:', params)
-    
+
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.PROFILES, { params })
     console.log('岗位画像列表API调用已发送，等待响应...')
     return result
   },
-  
+
   // 获取匹配结果
   getResults: (params) => {
     console.log('=== 调用getResults API ===')
     console.log('端点:', API_ENDPOINTS.COURSE_MATCH.RESULTS)
     console.log('参数:', params)
-    
+
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.RESULTS, { params })
     console.log('匹配结果API调用已发送，等待响应...')
     return result
   },
-  
-  // 刷新匹配结果
-  refreshResults: (params) => {
-    console.log('=== 调用refreshResults API ===')
-    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.REFRESH)
-    console.log('参数:', params)
-    
-    const result = request.post(API_ENDPOINTS.COURSE_MATCH.REFRESH, params)
-    console.log('刷新匹配结果API调用已发送，等待响应...')
-    return result
-  },
-  
-  // 获取匹配度分析
-  getAnalysis: (params) => {
-    console.log('=== 调用getAnalysis API ===')
-    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.ANALYSIS)
-    console.log('参数:', params)
-    
-    const result = request.get(API_ENDPOINTS.COURSE_MATCH.ANALYSIS, { params })
-    console.log('匹配度分析API调用已发送，等待响应...')
-    return result
-  },
-  
+
   // 获取优化建议
   getSuggestions: (params) => {
     console.log('=== 调用getSuggestions API ===')
     console.log('端点:', API_ENDPOINTS.COURSE_MATCH.SUGGESTIONS)
     console.log('参数:', params)
-    
+
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.SUGGESTIONS, { params })
     console.log('优化建议API调用已发送，等待响应...')
     return result
   },
-  
+
   // 获取课程匹配统计数据
   getStats: (params) => {
     console.log('=== 调用getStats API ===')
     console.log('端点:', API_ENDPOINTS.COURSE_MATCH.STATS)
     console.log('参数:', params)
-    
+
     const result = request.get(API_ENDPOINTS.COURSE_MATCH.STATS, { params })
     console.log('课程匹配统计API调用已发送，等待响应...')
+    return result
+  },
+
+  // 获取 AI 课程列表
+  getAiCourses: (params) => {
+    console.log('=== 调用getAiCourses API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.AI_COURSES)
+    console.log('参数:', params)
+
+    const result = request.get(API_ENDPOINTS.COURSE_MATCH.AI_COURSES, { params })
+    console.log('AI课程列表API调用已发送，等待响应...')
+    return result
+  },
+
+  // 根据岗位画像获取匹配的 AI 课程
+  getAiCoursesByProfile: (skillProfileId) => {
+    console.log('=== 调用getAiCoursesByProfile API ===')
+    console.log('端点:', `/enterprise/ai-courses/skill-profile/${skillProfileId}`)
+    console.log('岗位画像ID:', skillProfileId)
+
+    const result = request.get(`/enterprise/ai-courses/skill-profile/${skillProfileId}`)
+    console.log('根据岗位画像获取AI课程API调用已发送，等待响应...')
+    return result
+  },
+
+  // 根据岗位画像ID生成AI课程
+  generateAiCourse: (skillProfileId) => {
+    console.log('=== 调用generateAiCourse API ===')
+    console.log('端点:', `/enterprise/dify/generate-course/${skillProfileId}`)
+    console.log('岗位画像ID:', skillProfileId)
+
+    const result = request.post(`/enterprise/dify/generate-course/${skillProfileId}`)
+    console.log('生成AI课程API调用已发送，等待响应...')
+    return result
+  },
+
+  // 根据岗位画像ID获取AI课程列表(包含详细章节内容)
+  getAiCoursesBySkillProfile: (skillProfileId) => {
+    console.log('=== 调用getAiCoursesBySkillProfile API ===')
+    console.log('端点:', `/enterprise/ai-courses/skill-profile/${skillProfileId}`)
+    console.log('岗位画像ID:', skillProfileId)
+
+    const result = request.get(`/enterprise/ai-courses/skill-profile/${skillProfileId}`)
+    console.log('根据岗位画像获取AI课程详细内容API调用已发送，等待响应...')
+    return result
+  },
+
+
+  // Coze智能体匹配课程
+  cozeMatch: (profileId) => {
+    console.log('=== 调用cozeMatch API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.COZE_MATCH)
+    console.log('岗位画像ID:', profileId)
+
+    const result = request.post(API_ENDPOINTS.COURSE_MATCH.COZE_MATCH, { profileId })
+    console.log('Coze智能体匹配课程API调用已发送，等待响应...')
+    return result
+  },
+
+  // 加入计划
+  addToPlan: (data) => {
+    console.log('=== 调用addToPlan API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.ADD_TO_PLAN)
+    console.log('请求数据:', data)
+
+    const result = request.post(API_ENDPOINTS.COURSE_MATCH.ADD_TO_PLAN, data)
+    console.log('加入计划API调用已发送，等待响应...')
+    return result
+  },
+
+  // 获取已加入计划的课程
+  getAddedToPlan: (params) => {
+    console.log('=== 调用getAddedToPlan API ===')
+    console.log('端点:', '/enterprise/course-match/added-to-plan')
+    console.log('参数:', params)
+
+    const result = request.get('/enterprise/course-match/added-to-plan', { params })
+    console.log('获取已加入计划课程API调用已发送，等待响应...')
+    return result
+  },
+
+  // 移除课程
+  removeFromPlan: (data) => {
+    console.log('=== 调用removeFromPlan API ===')
+    console.log('端点:', API_ENDPOINTS.COURSE_MATCH.REMOVE_FROM_PLAN)
+    console.log('请求数据:', data)
+
+    const result = request.post(API_ENDPOINTS.COURSE_MATCH.REMOVE_FROM_PLAN, data)
+    console.log('移除课程API调用已发送，等待响应...')
+    return result
+  }
+}
+
+// 高校端AI课程审批相关 API
+export const universityAiCourseAuditApi = {
+  // 获取待审批列表
+  getPendingList: (params) => {
+    console.log('=== 调用getPendingList API ===')
+    console.log('端点:', API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.PENDING)
+    console.log('参数:', params)
+
+    const result = request.get(API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.PENDING, { params })
+    console.log('待审批列表API调用已发送，等待响应...')
+    return result
+  },
+
+  // 获取所有审批记录列表
+  getList: (params) => {
+    console.log('=== 调用getList API ===')
+    console.log('端点:', API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.LIST)
+    console.log('参数:', params)
+
+    const result = request.get(API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.LIST, { params })
+    console.log('审批记录列表API调用已发送，等待响应...')
+    return result
+  },
+
+  // 获取审批详情
+  getDetail: (auditId) => {
+    console.log('=== 调用getDetail API ===')
+    console.log('端点:', `${API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.DETAIL}/${auditId}`)
+    console.log('审批ID:', auditId)
+
+    const result = request.get(`${API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.DETAIL}/${auditId}`)
+    console.log('审批详情API调用已发送，等待响应...')
+    return result
+  },
+
+  // 审批AI课程
+  approve: (auditId, data) => {
+    console.log('=== 调用approve API ===')
+    console.log('端点:', `${API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.APPROVE}/${auditId}/approve`)
+    console.log('审批ID:', auditId)
+    console.log('请求数据:', data)
+
+    const result = request.post(`${API_ENDPOINTS.UNIVERSITY_AI_COURSE_AUDIT.APPROVE}/${auditId}/approve`, data)
+    console.log('审批AI课程API调用已发送，等待响应...')
     return result
   }
 }
@@ -735,6 +872,7 @@ export default {
   cooperationApi,
   talentDemandApi,
   skillProfileApi,
-  trainingApi,
-  courseMatchApi
+  aiCoursePlanApi,
+  courseMatchApi,
+  universityAiCourseAuditApi
 }

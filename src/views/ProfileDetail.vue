@@ -52,7 +52,7 @@
               size="large"
               style="margin-right: 12px; margin-bottom: 8px"
             >
-              {{ skill }}
+              {{ typeof skill === 'object' ? skill.name : skill }}
             </el-tag>
           </div>
         </el-card>

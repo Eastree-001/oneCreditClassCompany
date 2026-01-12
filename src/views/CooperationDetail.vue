@@ -107,7 +107,7 @@
               type="info"
               style="margin-right: 8px; margin-bottom: 8px;"
             >
-              {{ skill }}
+              {{ typeof skill === 'object' ? skill.name : skill }}
             </el-tag>
           </div>
         </el-card>
