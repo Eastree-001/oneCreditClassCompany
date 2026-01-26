@@ -176,7 +176,7 @@
                   size="small"
                   style="margin-right: 6px; margin-bottom: 6px"
                 >
-                  {{ skill }}
+                  {{ typeof skill === 'object' ? skill.name : skill }}
                 </el-tag>
               </div>
             </div>
