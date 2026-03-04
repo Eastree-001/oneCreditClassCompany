@@ -146,21 +146,7 @@
             <span>从下拉列表中选择技能，支持搜索和自定义输入，可多选</span>
           </div>
         </el-form-item>
-        <el-form-item label="经验要求">
-          <el-input
-            v-model="formData.experience"
-            placeholder="如：1-3年工作经验"
-          />
-        </el-form-item>
-        <el-form-item label="学历要求">
-          <el-select v-model="formData.education" placeholder="请选择" style="width: 100%">
-            <el-option label="不限" value="" />
-            <el-option label="大专" value="college" />
-            <el-option label="本科" value="bachelor" />
-            <el-option label="硕士" value="master" />
-            <el-option label="博士" value="doctor" />
-          </el-select>
-        </el-form-item>
+        
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>

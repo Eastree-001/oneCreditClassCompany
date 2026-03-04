@@ -25,8 +25,7 @@
               {{ getTypeName(profileDetail.type) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="经验要求">{{ profileDetail.experience || '不限' }}</el-descriptions-item>
-          <el-descriptions-item label="学历要求">{{ getEducationName(profileDetail.education) }}</el-descriptions-item>
+         
           <el-descriptions-item label="创建时间">{{ profileDetail.createTime }}</el-descriptions-item>
           <el-descriptions-item label="匹配课程数">{{ profileDetail.matchCount || 0 }}</el-descriptions-item>
         </el-descriptions>
