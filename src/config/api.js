@@ -137,6 +137,14 @@ export const API_ENDPOINTS = {
     LIST: '/university/ai-courses-audit/list',
     DETAIL: '/university/ai-courses-audit',
     APPROVE: '/university/ai-courses-audit'
+  },
+  
+  // 管理员相关
+  ADMIN: {
+    LOGIN: '/admin/auth/login',
+    LOGOUT: '/admin/auth/logout',
+    ME: '/admin/auth/me',
+    STS_TOKEN: '/admin/sts-token'
   }
 }
 

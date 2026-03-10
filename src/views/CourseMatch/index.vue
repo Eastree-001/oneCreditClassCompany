@@ -1594,7 +1594,7 @@ onMounted(() => {
       }
     }
     
-    .match-results {
+    .ai-courses-list {
       .results-header {
         display: flex;
         justify-content: space-between;
@@ -1646,6 +1646,7 @@ onMounted(() => {
             margin-bottom: 12px;
             color: var(--text-regular);
             line-height: 1.6;
+            font-size: 13px;
           }
 
           .course-reason {
@@ -1662,12 +1663,13 @@ onMounted(() => {
             }
           }
 
-          .matched-skills {
+          .course-skills {
             margin-bottom: 12px;
 
             .label {
               font-weight: 600;
               margin-right: 8px;
+              color: var(--text-primary);
             }
           }
           

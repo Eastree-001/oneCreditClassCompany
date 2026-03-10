@@ -82,6 +82,7 @@ import { ElMessage } from 'element-plus'
 import { Fold, Expand, ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useUserStoreUniversity } from '@/stores/user-university'
+import { useUserStoreAdmin } from '@/stores/user-admin'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -89,15 +90,26 @@ const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const userStoreUniversity = useUserStoreUniversity()
+const userStoreAdmin = useUserStoreAdmin()
 const isCollapse = ref(false)
 
-// 当前端标识（企业端 / 高校端）
-const modeLabel = computed(() => (appStore.isEnterprise ? '企业端' : '高校端'))
-const modeShort = computed(() => (appStore.isEnterprise ? '企' : '校'))
+// 当前端标识（企业端 / 高校端 / 管理员端）
+const modeLabel = computed(() => {
+  if (appStore.isEnterprise) return '企业端'
+  if (appStore.isUniversity) return '高校端'
+  return '管理员端'
+})
+const modeShort = computed(() => {
+  if (appStore.isEnterprise) return '企'
+  if (appStore.isUniversity) return '校'
+  return '管'
+})
 
 // 根据当前模式选择对应的store
 const currentUserStore = computed(() => {
-  return appStore.isEnterprise ? userStore : userStoreUniversity
+  if (appStore.isEnterprise) return userStore
+  if (appStore.isUniversity) return userStoreUniversity
+  return userStoreAdmin
 })
 
 const enterpriseMenuList = [
@@ -112,15 +124,25 @@ const enterpriseMenuList = [
 
 const universityMenuList = [
   { path: '/dashboard-university', title: '数据看板', icon: 'DataBoard' },
-  { path: '/course-slice', title: '课程切片与技能映射', icon: 'Document' },
+  { path: '/ai-course-audit', title: 'AI课程审批', icon: 'DocumentChecked' },
+  // { path: '/course-slice', title: '课程切片与技能映射', icon: 'Document' },
   { path: '/proposal-approval', title: '企业项目合作', icon: 'EditPen' },
   { path: '/teaching-feedback', title: '教学评价', icon: 'DataAnalysis' },
-  { path: '/ai-course-audit', title: 'AI课程审批', icon: 'DocumentChecked' },
   { path: '/cooperation-university', title: '校企合作管理', icon: 'Connection' }
 ]
 
+const adminMenuList = [
+  { path: '/dashboard-admin', title: '管理员看板', icon: 'Monitor' },
+  { path: '/user-management', title: '用户管理', icon: 'User' },
+  { path: '/cooperation-audit', title: '合作审核', icon: 'Document' },
+  { path: '/video-management', title: '视频管理', icon: 'VideoPlay' },
+  { path: '/system-management', title: '系统管理', icon: 'Setting' }
+]
+
 const menuList = computed(() => {
-  return appStore.isEnterprise ? enterpriseMenuList : universityMenuList
+  if (appStore.isEnterprise) return enterpriseMenuList
+  if (appStore.isUniversity) return universityMenuList
+  return adminMenuList
 })
 
 const activeMenu = computed(() => route.path)
@@ -150,8 +172,11 @@ onMounted(async () => {
   console.log('Layout组件加载，初始化用户状态...')
   if (appStore.isEnterprise) {
     await userStore.initUserState()
-  } else {
+  } else if (appStore.isUniversity) {
     await userStoreUniversity.initUserState()
+  } else {
+    // 管理员端不需要初始化用户状态，使用默认值
+    console.log('管理员端模式，跳过用户状态初始化')
   }
   console.log('Layout组件用户状态:', {
     mode: appStore.currentMode,

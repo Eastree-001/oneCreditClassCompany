@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/layout/index.vue'
 import { useUserStore } from '@/stores/user'
 import { useUserStoreUniversity } from '@/stores/user-university'
+import { useUserStoreAdmin } from '@/stores/user-admin'
 import { useAppStore } from '@/stores/app'
 
 const routes = [
@@ -16,7 +17,13 @@ const routes = [
     component: Layout,
     redirect: (to) => {
       const appStore = useAppStore()
-      return appStore.isEnterprise ? '/dashboard' : '/dashboard-university'
+      if (appStore.isEnterprise) {
+        return '/dashboard'
+      } else if (appStore.isUniversity) {
+        return '/dashboard-university'
+      } else {
+        return '/dashboard-admin'
+      }
     },
     children: [
       // 企业端路由
@@ -141,6 +148,37 @@ const routes = [
         name: 'PersonalCenter',
         component: () => import('@/views/PersonalCenter.vue'),
         meta: { title: '个人中心', icon: 'User', requiresAuth: true }
+      },
+      // 管理员端路由
+      {
+        path: 'dashboard-admin',
+        name: 'DashboardAdmin',
+        component: () => import('@/views/DashboardAdmin.vue'),
+        meta: { title: '管理员看板', icon: 'Monitor', requiresAuth: true, mode: 'admin' }
+      },
+      {
+        path: 'system-management',
+        name: 'SystemManagement',
+        component: () => import('@/views/SystemManagement/index.vue'),
+        meta: { title: '系统管理', icon: 'Setting', requiresAuth: true, mode: 'admin' }
+      },
+      {
+        path: 'user-management',
+        name: 'UserManagement',
+        component: () => import('@/views/UserManagement/index.vue'),
+        meta: { title: '用户管理', icon: 'User', requiresAuth: true, mode: 'admin' }
+      },
+      {
+        path: 'cooperation-audit',
+        name: 'CooperationAudit',
+        component: () => import('@/views/CooperationAudit/index.vue'),
+        meta: { title: '合作审核', icon: 'Document', requiresAuth: true, mode: 'admin' }
+      },
+      {
+        path: 'video-management',
+        name: 'VideoManagement',
+        component: () => import('@/views/VideoManagement/index.vue'),
+        meta: { title: '视频管理', icon: 'VideoPlay', requiresAuth: true, mode: 'admin' }
       }
     ]
   }
@@ -156,6 +194,7 @@ router.beforeEach(async (to, from, next) => {
   const appStore = useAppStore()
   const userStore = useUserStore()
   const userStoreUniversity = useUserStoreUniversity()
+  const userStoreAdmin = useUserStoreAdmin()
   
   // 根据路由meta确定当前模式
   const routeMode = to.matched.find(record => record.meta.mode)?.meta.mode
@@ -164,11 +203,20 @@ router.beforeEach(async (to, from, next) => {
       appStore.switchToEnterprise()
     } else if (routeMode === 'university' && !appStore.isUniversity) {
       appStore.switchToUniversity()
+    } else if (routeMode === 'admin' && !appStore.isAdmin) {
+      appStore.switchToAdmin()
     }
   }
   
   // 根据当前模式选择对应的store
-  const currentUserStore = appStore.isEnterprise ? userStore : userStoreUniversity
+  let currentUserStore
+  if (appStore.isEnterprise) {
+    currentUserStore = userStore
+  } else if (appStore.isUniversity) {
+    currentUserStore = userStoreUniversity
+  } else {
+    currentUserStore = userStoreAdmin
+  }
   
   console.log('路由守卫检查:', {
     to: to.path,
@@ -183,7 +231,14 @@ router.beforeEach(async (to, from, next) => {
     // 如果已经登录，重定向到首页
     if (currentUserStore.isLoggedIn) {
       console.log('用户已登录，重定向到首页')
-      const redirectPath = appStore.isEnterprise ? '/dashboard' : '/dashboard-university'
+      let redirectPath
+      if (appStore.isEnterprise) {
+        redirectPath = '/dashboard'
+      } else if (appStore.isUniversity) {
+        redirectPath = '/dashboard-university'
+      } else {
+        redirectPath = '/dashboard-admin'
+      }
       next(redirectPath)
       return
     }

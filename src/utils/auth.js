@@ -68,6 +68,7 @@ export const getUserInfoFromToken = (token) => {
     username: payload.username || payload.name,
     email: payload.email,
     companyName: payload.companyName,
+    companyId: payload.companyId,
     roles: payload.roles || payload.authorities || [],
     permissions: payload.permissions || []
   }
@@ -86,7 +87,7 @@ export const isValidTokenFormat = (token) => {
 
 /**
  * 从localStorage获取有效的token
- * @param {string} mode - 'enterprise' | 'university'
+ * @param {string} mode - 'enterprise' | 'university' | 'admin'
  * @returns {string|null} - 有效token或null
  */
 export const getValidToken = (mode = null) => {
@@ -96,8 +97,18 @@ export const getValidToken = (mode = null) => {
     mode = appMode
   }
 
-  const tokenKey = mode === 'university' ? 'token_university' : 'token'
-  const userInfoKey = mode === 'university' ? 'userInfo_university' : 'userInfo'
+  // 根据模式确定token和userInfo的key
+  let tokenKey = 'token'
+  let userInfoKey = 'userInfo'
+  
+  if (mode === 'university') {
+    tokenKey = 'token_university'
+    userInfoKey = 'userInfo_university'
+  } else if (mode === 'admin') {
+    tokenKey = 'token_admin'
+    userInfoKey = 'userInfo_admin'
+  }
+  
   const token = localStorage.getItem(tokenKey)
 
   console.log('获取token验证:', {

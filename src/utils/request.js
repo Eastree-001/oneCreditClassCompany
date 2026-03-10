@@ -16,9 +16,17 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 根据请求URL判断是高校端还是企业端
-    const isUniversityRequest = config.url && config.url.includes('/university/')
-    const mode = isUniversityRequest ? 'university' : 'enterprise'
+    // 根据请求URL判断是哪个端
+    let mode = 'enterprise'
+    if (config.url && config.url.includes('/university/')) {
+      mode = 'university'
+    } else if (config.url && config.url.includes('/admin/')) {
+      mode = 'admin'
+    } else if (config.url && config.url.includes('/oss/')) {
+      // 优先尝试管理员权限，如果失败则尝试企业端权限
+      const adminToken = getValidToken('admin')
+      mode = adminToken ? 'admin' : 'enterprise'
+    }
 
     // 获取有效的token，自动过滤过期token
     const token = getValidToken(mode)
@@ -26,7 +34,6 @@ request.interceptors.request.use(
     // 添加调试信息
     console.log(`发送请求: ${config.method?.toUpperCase()} ${config.url}`, {
       mode: mode,
-      isUniversity: isUniversityRequest,
       hasToken: !!token,
       token: token ? `${token.substring(0, 20)}...` : '无',
       headers: config.headers
@@ -87,10 +94,20 @@ request.interceptors.response.use(
     let message = '网络错误'
 
     if (error.response) {
-      // 判断是高校端还是企业端的请求
-      const isUniversityRequest = error.config.url && error.config.url.includes('/university/')
-      const tokenKey = isUniversityRequest ? 'token_university' : 'token'
-      const userInfoKey = isUniversityRequest ? 'userInfo_university' : 'userInfo'
+      // 判断是哪个端的请求
+      let tokenKey = 'token'
+      let userInfoKey = 'userInfo'
+      
+      if (error.config.url && error.config.url.includes('/university/')) {
+        tokenKey = 'token_university'
+        userInfoKey = 'userInfo_university'
+      } else if (error.config.url && error.config.url.includes('/admin/')) {
+        tokenKey = 'token_admin'
+        userInfoKey = 'userInfo_admin'
+      } else if (error.config.url && error.config.url.includes('/oss/')) {
+        tokenKey = 'token_admin' // OSS接口使用管理员权限
+        userInfoKey = 'userInfo_admin'
+      }
 
       switch (error.response.status) {
         case 401:

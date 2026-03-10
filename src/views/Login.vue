@@ -16,7 +16,11 @@
               <el-icon :size="48"><School /></el-icon>
             </div>
             <h1 class="system-name">一学分课堂</h1>
-            <p class="system-desc">{{ appStore.isEnterprise ? '企业端管理平台' : '高校端管理平台' }}</p>
+            <p class="system-desc">{{ 
+              appStore.isEnterprise ? '企业端管理平台' : 
+              appStore.isUniversity ? '高校端管理平台' : 
+              '管理员端管理平台'
+            }}</p>
           </div>
           <div class="feature-list">
             <template v-if="appStore.isEnterprise">
@@ -33,7 +37,7 @@
                 <span>人才培养计划</span>
               </div>
             </template>
-            <template v-else>
+            <template v-else-if="appStore.isUniversity">
               <div class="feature-item">
                 <el-icon :size="24"><Document /></el-icon>
                 <span>课程切片管理</span>
@@ -47,6 +51,20 @@
                 <span>教学反馈分析</span>
               </div>
             </template>
+            <template v-else>
+              <div class="feature-item">
+                <el-icon :size="24"><User /></el-icon>
+                <span>用户管理</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><Setting /></el-icon>
+                <span>系统设置</span>
+              </div>
+              <div class="feature-item">
+                <el-icon :size="24"><Document /></el-icon>
+                <span>合作审核</span>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -55,26 +73,37 @@
       <div class="login-form-wrapper">
         <div class="login-box">
           <div class="login-header">
-            <div class="mode-switch-container">
-              <el-button-group>
-                <el-button 
-                  :type="appStore.isEnterprise ? 'primary' : 'default'"
-                  @click="switchToEnterprise"
-                  size="small"
-                >
-                  企业端
-                </el-button>
-                <el-button 
-                  :type="appStore.isUniversity ? 'primary' : 'default'"
-                  @click="switchToUniversity"
-                  size="small"
-                >
-                  高校端
-                </el-button>
-              </el-button-group>
-            </div>
+          <div class="mode-switch-container">
+            <el-button-group>
+              <el-button 
+                :type="appStore.isEnterprise ? 'primary' : 'default'"
+                @click="switchToEnterprise"
+                size="small"
+              >
+                企业端
+              </el-button>
+              <el-button 
+                :type="appStore.isUniversity ? 'primary' : 'default'"
+                @click="switchToUniversity"
+                size="small"
+              >
+                高校端
+              </el-button>
+              <el-button 
+                :type="appStore.isAdmin ? 'primary' : 'default'"
+                @click="switchToAdmin"
+                size="small"
+              >
+                管理员端
+              </el-button>
+            </el-button-group>
+          </div>
             <h2 class="login-title">欢迎回来</h2>
-            <p class="login-subtitle">{{ appStore.isEnterprise ? '请登录您的企业账号' : '请登录您的高校账号' }}</p>
+            <p class="login-subtitle">{{ 
+              appStore.isEnterprise ? '请登录您的企业账号' : 
+              appStore.isUniversity ? '请登录您的高校账号' : 
+              '请登录您的管理员账号'
+            }}</p>
           </div>
 
           <el-tabs v-model="activeTab" class="login-tabs">
@@ -126,122 +155,147 @@
               </el-form>
             </el-tab-pane>
 
-            <el-tab-pane :label="appStore.isEnterprise ? '企业注册' : '高校注册'" name="register">
-              <el-form
-                ref="registerFormRef"
-                :model="registerForm"
-                :rules="registerRules"
-                class="register-form"
-              >
-                <el-form-item :prop="appStore.isEnterprise ? 'companyName' : 'universityName'">
-                  <template v-if="appStore.isEnterprise">
-                    <el-select
-                      v-model="registerForm.companyName"
-                      placeholder="请选择企业名称"
+            <el-tab-pane v-if="!appStore.isAdmin" :label="appStore.isEnterprise ? '企业注册' : '高校注册'" name="register">
+              <div class="register-scroll-container">
+                <el-form
+                  ref="registerFormRef"
+                  :model="registerForm"
+                  :rules="registerRules"
+                  class="register-form"
+                >
+                  <el-form-item :prop="appStore.isEnterprise ? 'companyName' : 'universityName'">
+                    <template v-if="appStore.isEnterprise">
+                      <el-select
+                        v-model="registerForm.companyId"
+                        placeholder="请选择企业名称"
+                        size="large"
+                        filterable
+                        style="width: 100%"
+                        :loading="enterpriseListLoading"
+                        @visible-change="handleEnterpriseSelectVisible"
+                        @change="handleEnterpriseChange"
+                      >
+                        <el-option
+                          v-for="enterprise in enterpriseList"
+                          :key="enterprise.id"
+                          :label="enterprise.name"
+                          :value="enterprise.id"
+                        />
+                      </el-select>
+                    </template>
+                    <template v-else>
+                      <el-select
+                        v-model="registerForm.universityId"
+                        placeholder="请选择高校名称"
+                        size="large"
+                        filterable
+                        style="width: 100%"
+                        :loading="universityListLoading"
+                        @visible-change="handleUniversitySelectVisible"
+                        @change="handleUniversityChange"
+                      >
+                        <el-option
+                          v-for="university in universityList"
+                          :key="university.id"
+                          :label="university.name"
+                          :value="university.id"
+                        />
+                      </el-select>
+                    </template>
+                  </el-form-item>
+                  <el-form-item prop="username">
+                    <el-input
+                      v-model="registerForm.username"
+                      placeholder="请输入用户名"
                       size="large"
-                      filterable
-                      style="width: 100%"
-                      :loading="enterpriseListLoading"
-                      @visible-change="handleEnterpriseSelectVisible"
-                    >
-                      <el-option
-                        v-for="enterprise in enterpriseList"
-                        :key="enterprise.id"
-                        :label="enterprise.name"
-                        :value="enterprise.name"
-                      />
-                    </el-select>
-                  </template>
-                  <template v-else>
-                    <el-select
-                      v-model="registerForm.universityName"
-                      placeholder="请选择高校名称"
+                      prefix-icon="User"
+                      clearable
+                    />
+                  </el-form-item>
+                  <el-form-item prop="email">
+                    <el-input
+                      v-model="registerForm.email"
+                      :placeholder="appStore.isEnterprise ? '请输入企业邮箱' : '请输入高校邮箱'"
                       size="large"
-                      filterable
-                      style="width: 100%"
-                      :loading="universityListLoading"
-                      @visible-change="handleUniversitySelectVisible"
-                    >
-                      <el-option
-                        v-for="university in universityList"
-                        :key="university.id"
-                        :label="university.name"
-                        :value="university.name"
+                      prefix-icon="Message"
+                      clearable
+                    />
+                  </el-form-item>
+                  <el-form-item prop="verificationCode">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                      <el-input
+                        v-model="registerForm.verificationCode"
+                        placeholder="请输入邮箱验证码"
+                        size="large"
+                        prefix-icon="Key"
+                        clearable
                       />
-                    </el-select>
-                  </template>
-                </el-form-item>
-                <el-form-item prop="username">
-                  <el-input
-                    v-model="registerForm.username"
-                    placeholder="请输入用户名"
-                    size="large"
-                    prefix-icon="User"
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item prop="email">
-                  <el-input
-                    v-model="registerForm.email"
-                    :placeholder="appStore.isEnterprise ? '请输入企业邮箱' : '请输入高校邮箱'"
-                    size="large"
-                    prefix-icon="Message"
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item prop="phone">
-                  <el-input
-                    v-model="registerForm.phone"
-                    placeholder="请输入联系电话"
-                    size="large"
-                    prefix-icon="Phone"
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item prop="password">
-                  <el-input
-                    v-model="registerForm.password"
-                    type="password"
-                    placeholder="请输入密码（至少8位）"
-                    size="large"
-                    prefix-icon="Lock"
-                    show-password
-                    clearable
-                  />
-                </el-form-item>
-                <el-form-item prop="confirmPassword">
-                  <el-input
-                    v-model="registerForm.confirmPassword"
-                    type="password"
-                    placeholder="请再次输入密码"
-                    size="large"
-                    prefix-icon="Lock"
-                    show-password
-                    clearable
-                    @keyup.enter="handleRegister"
-                  />
-                </el-form-item>
-                <el-form-item>
-                  <el-checkbox v-model="agreeTerms">
-                    我已阅读并同意
-                    <el-link type="primary" :underline="false">《服务协议》</el-link>
-                    和
-                    <el-link type="primary" :underline="false">《隐私政策》</el-link>
-                  </el-checkbox>
-                </el-form-item>
-                <el-form-item>
-                  <el-button
-                    type="primary"
-                    size="large"
-                    class="register-button"
-                    :loading="registerLoading"
-                    :disabled="!agreeTerms"
-                    @click="handleRegister"
-                  >
-                    {{ registerLoading ? '注册中...' : '立即注册' }}
-                  </el-button>
-                </el-form-item>
-              </el-form>
+                      <el-button
+                        type="primary"
+                        size="large"
+                        :disabled="!canSendCode"
+                        :loading="codeSending"
+                        @click="handleSendVerificationCode"
+                        style="width: 140px;"
+                      >
+                        {{ codeButtonText }}
+                      </el-button>
+                    </div>
+                  </el-form-item>
+                  <el-form-item prop="phone">
+                    <el-input
+                      v-model="registerForm.phone"
+                      placeholder="请输入联系电话"
+                      size="large"
+                      prefix-icon="Phone"
+                      clearable
+                    />
+                  </el-form-item>
+                  <el-form-item prop="password">
+                    <el-input
+                      v-model="registerForm.password"
+                      type="password"
+                      placeholder="请输入密码（至少8位）"
+                      size="large"
+                      prefix-icon="Lock"
+                      show-password
+                      clearable
+                    />
+                  </el-form-item>
+                  <el-form-item prop="confirmPassword">
+                    <el-input
+                      v-model="registerForm.confirmPassword"
+                      type="password"
+                      placeholder="请再次输入密码"
+                      size="large"
+                      prefix-icon="Lock"
+                      show-password
+                      clearable
+                      @keyup.enter="handleRegister"
+                    />
+                  </el-form-item>
+                  <el-form-item>
+                    <el-checkbox v-model="agreeTerms">
+                      我已阅读并同意
+                      <el-link type="primary" :underline="false">《服务协议》</el-link>
+                      和
+                      <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                    </el-checkbox>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button
+                      type="primary"
+                      size="large"
+                      class="register-button"
+                      :loading="registerLoading"
+                      :disabled="!agreeTerms"
+                      @click="handleRegister"
+                    >
+                      {{ registerLoading ? '注册中...' : '立即注册' }}
+                    </el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
             </el-tab-pane>
           </el-tabs>
         </div>
@@ -256,20 +310,33 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { userApi } from '@/api'
 import { userApiUniversity } from '@/api/university'
+import { userApiAdmin } from '@/api/admin'
 import { useUserStore } from '@/stores/user'
 import { useUserStoreUniversity } from '@/stores/user-university'
+import { useUserStoreAdmin } from '@/stores/user-admin'
 import { useAppStore } from '@/stores/app'
-import { School, Connection, User, Document, OfficeBuilding, Message, Phone, Lock, EditPen, DataAnalysis } from '@element-plus/icons-vue'
+import { School, Connection, User, Document, OfficeBuilding, Message, Phone, Lock, EditPen, DataAnalysis, Key, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const userStoreUniversity = useUserStoreUniversity()
+const userStoreAdmin = useUserStoreAdmin()
 
 // 页面加载时检查记住我功能
 onMounted(() => {
-  const rememberKey = appStore.isEnterprise ? 'rememberMe' : 'rememberMe_university'
-  const usernameKey = appStore.isEnterprise ? 'username' : 'username_university'
+  let rememberKey, usernameKey
+  
+  if (appStore.isEnterprise) {
+    rememberKey = 'rememberMe'
+    usernameKey = 'username'
+  } else if (appStore.isUniversity) {
+    rememberKey = 'rememberMe_university'
+    usernameKey = 'username_university'
+  } else {
+    rememberKey = 'rememberMe_admin'
+    usernameKey = 'username_admin'
+  }
   
   if (localStorage.getItem(rememberKey) === 'true') {
     rememberMe.value = true
@@ -286,6 +353,9 @@ const loginLoading = ref(false)
 const registerLoading = ref(false)
 const rememberMe = ref(false)
 const agreeTerms = ref(false)
+const codeCountdown = ref(0)
+const codeSending = ref(false)
+const codeButtonText = ref('获取验证码')
 
 const loginForm = reactive({
   username: '',
@@ -294,12 +364,15 @@ const loginForm = reactive({
 
 const registerForm = reactive({
   companyName: '',
+  companyId:'',
   universityName: '',
+  universityId: '',
   username: '',
   email: '',
   phone: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  emailVerificationCode: ''
 })
 
 // 企业列表相关
@@ -331,6 +404,14 @@ const handleEnterpriseSelectVisible = (visible) => {
   }
 }
 
+// 企业选择变化时更新企业名称
+const handleEnterpriseChange = (companyId) => {
+  const selectedEnterprise = enterpriseList.value.find(enterprise => enterprise.id === companyId)
+  if (selectedEnterprise) {
+    registerForm.companyName = selectedEnterprise.name
+  }
+}
+
 // 高校列表相关
 const universityList = ref([])
 const universityListLoading = ref(false)
@@ -357,6 +438,14 @@ const loadUniversityList = async () => {
 const handleUniversitySelectVisible = (visible) => {
   if (visible && universityList.value.length === 0) {
     loadUniversityList()
+  }
+}
+
+// 高校选择变化时更新高校名称
+const handleUniversityChange = (universityId) => {
+  const selectedUniversity = universityList.value.find(university => university.id === universityId)
+  if (selectedUniversity) {
+    registerForm.universityName = selectedUniversity.name
   }
 }
 
@@ -390,17 +479,24 @@ const handleSendVerificationCode = async () => {
       isUniversity: !appStore.isEnterprise
     })
 
+    let result
     if (appStore.isEnterprise) {
-      await userApi.sendVerification({
+      result = await userApi.sendVerification({
         email: registerForm.email
       })
     } else {
-      await userApiUniversity.sendVerification({
+      result = await userApiUniversity.sendVerification({
         email: registerForm.email
       })
     }
 
-    ElMessage.success('验证码已发送到您的邮箱')
+    console.log('验证码发送API返回结果:', result)
+    
+    if (result.data.message === '该邮箱已被注册') {
+      ElMessage.error(result.data.message)
+    } else {
+      ElMessage.success(result.data.message)
+    }
 
     // 开始倒计时
     codeCountdown.value = 60
@@ -567,6 +663,10 @@ const registerRules = {
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
+  ],
+  verificationCode: [
+    { required: true, message: '请输入邮箱验证码', trigger: 'blur' },
+    { pattern: /^\d{6}$/, message: '验证码必须是6位数字', trigger: 'blur' }
   ]
 }
 
@@ -590,7 +690,7 @@ const handleLogin = async () => {
           if (!userStore.isLoggedIn) {
             throw new Error('登录状态验证失败')
           }
-        } else {
+        } else if (appStore.isUniversity) {
           // 高校端登录
           result = await userStoreUniversity.login({
             username: loginForm.username,
@@ -600,6 +700,16 @@ const handleLogin = async () => {
           if (!userStoreUniversity.isLoggedIn) {
             throw new Error('登录状态验证失败')
           }
+        } else {
+          // 管理员端登录
+          result = await userStoreAdmin.login({
+            username: loginForm.username,
+            password: loginForm.password
+          })
+          
+          if (!userStoreAdmin.isLoggedIn) {
+            throw new Error('登录状态验证失败')
+          }
         }
         
         console.log('登录API返回:', result)
@@ -607,8 +717,18 @@ const handleLogin = async () => {
         ElMessage.success('登录成功')
         
         // 记住我功能
-        const rememberKey = appStore.isEnterprise ? 'rememberMe' : 'rememberMe_university'
-        const usernameKey = appStore.isEnterprise ? 'username' : 'username_university'
+        let rememberKey, usernameKey
+        
+        if (appStore.isEnterprise) {
+          rememberKey = 'rememberMe'
+          usernameKey = 'username'
+        } else if (appStore.isUniversity) {
+          rememberKey = 'rememberMe_university'
+          usernameKey = 'username_university'
+        } else {
+          rememberKey = 'rememberMe_admin'
+          usernameKey = 'username_admin'
+        }
         
         if (rememberMe.value) {
           localStorage.setItem(rememberKey, 'true')
@@ -622,7 +742,16 @@ const handleLogin = async () => {
         
         await new Promise(resolve => setTimeout(resolve, 100))
         
-        await router.push('/')
+        // 根据当前模式跳转到对应主页
+        let redirectPath
+        if (appStore.isEnterprise) {
+          redirectPath = '/dashboard'
+        } else if (appStore.isUniversity) {
+          redirectPath = '/dashboard-university'
+        } else {
+          redirectPath = '/dashboard-admin'
+        }
+        await router.push(redirectPath)
         
         console.log('跳转完成')
         
@@ -651,13 +780,15 @@ const handleRegister = async () => {
         // 构造注册请求数据
         const registerData = appStore.isEnterprise ? {
           companyName: registerForm.companyName,
+          companyId: registerForm.companyId,
           username: registerForm.username,
           email: registerForm.email,
           phone: registerForm.phone,
           password: registerForm.password,
-          verificationCode: registerForm.verificationCode
+          emailVerificationCode: registerForm.verificationCode
         } : {
-          universityName: registerForm.companyName,
+          universityName: registerForm.universityName,
+          universityId: registerForm.universityId,
           username: registerForm.username,
           email: registerForm.email,
           phone: registerForm.phone,
@@ -683,7 +814,17 @@ const handleRegister = async () => {
           ? await userApi.register(registerData)
           : await userApiUniversity.register(registerData)
         
-        ElMessage.success('注册成功，请登录')
+        console.log('注册API返回结果:', result)
+        
+        if (result.data && result.data.message) {
+          if (result.data.message.includes('注册成功')) {
+            ElMessage.success('注册成功，请登录')
+          } else {
+            ElMessage.error(result.data.message)
+          }
+        } else {
+          ElMessage.success('注册成功，请登录')
+        }
         
         // 切换到登录标签页
         activeTab.value = 'login'
@@ -735,6 +876,17 @@ const switchToUniversity = () => {
   registerForm.phone = ''
   registerForm.password = ''
   registerForm.confirmPassword = ''
+}
+
+const switchToAdmin = () => {
+  appStore.switchToAdmin()
+  // 清空表单
+  loginForm.username = ''
+  loginForm.password = ''
+  // 管理员模式下隐藏注册页面
+  if (activeTab.value === 'register') {
+    activeTab.value = 'login'
+  }
 }
 </script>
 
@@ -914,8 +1066,7 @@ const switchToUniversity = () => {
         }
       }
       
-      .login-form,
-      .register-form {
+      .login-form {
         .form-options {
           width: 100%;
           display: flex;
@@ -923,8 +1074,7 @@ const switchToUniversity = () => {
           align-items: center;
         }
         
-        .login-button,
-        .register-button {
+        .login-button {
           width: 100%;
           height: 48px;
           font-size: 16px;
@@ -939,19 +1089,61 @@ const switchToUniversity = () => {
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
           }
         }
+      }
+      
+      .register-scroll-container {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 8px;
         
-        :deep(.el-input__wrapper) {
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s;
-          
-          &:hover {
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        &::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 3px;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 3px;
+        }
+        
+        &::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .register-form {
+          .register-button {
+            width: 100%;
+            height: 48px;
+            font-size: 16px;
+            font-weight: 500;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            }
           }
-          
-          &.is-focus {
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-          }
+        }
+      }
+        
+      :deep(.el-input__wrapper) {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s;
+        
+        &:hover {
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        
+        &.is-focus {
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
         }
       }
     }
